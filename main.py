@@ -6,7 +6,7 @@ from transformers import (
 )
 
 from src.utils import (
-    get_dataset,
+    load_artifact_dataset,
     tokenizer
 )
 from src.model import AlphaQuestModel
@@ -15,7 +15,7 @@ device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda")
 
-dataset = get_dataset()
+dataset = load_artifact_dataset()
 test_solutions = dataset["test"][:5]
 
 model = GPT2LMHeadModel.from_pretrained('gpt2-medium')

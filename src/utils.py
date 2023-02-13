@@ -1,5 +1,7 @@
 import numpy as np
-from datasets import load_dataset
+
+import wandb
+from datasets import load_dataset, load_from_disk
 from transformers import (
     GPT2LMHeadModel,
     DataCollatorForSeq2Seq,
@@ -42,7 +44,7 @@ def tokenize_data(example):
     )
 
 
-def get_dataset(split=None):
+def get_raw_dataset(split=None):
     """
     load dataset
     flatten
@@ -61,6 +63,19 @@ def get_dataset(split=None):
     dataset = dataset.filter(lambda example: len(example['solutions.solution']) > 0)
     dataset = dataset.map(extract_problem, batched=True)
     dataset = dataset.map(extract_solution, batched=True)
+    dataset = dataset.map(tokenize_data, batched=True, remove_columns=dataset["train"].column_names)
+    dataset.set_format("torch")
+    return dataset
+
+
+def load_artifact_dataset(artifact="code-contests", version="latest"):
+    run = wandb.init(
+        project="AlphaQuest",
+        job_type="dataset-creation"
+    )
+    dataset_artifact = run.use_artifact(f"{artifact}:{version}")
+    dataset_artifact.download()
+    dataset = load_from_disk(f'./artifacts/{artifact}:{version}/processed_data')
     dataset = dataset.map(tokenize_data, batched=True, remove_columns=dataset["train"].column_names)
     dataset.set_format("torch")
     return dataset
