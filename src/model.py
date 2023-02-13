@@ -8,10 +8,13 @@ from torch.utils.data import DataLoader
 from transformers import get_scheduler
 
 from src.utils import (
+    get_config_data,
     batch_to_device,
-    data_collator,
     post_process,
 )
+
+
+config = get_config_data()
 
 
 class AlphaQuestModel:
@@ -21,16 +24,14 @@ class AlphaQuestModel:
                  model,
                  model_path,
                  device,
-                 tokenizer
+                 tokenizer,
+                 batch_size
                  ):
 
         self.train_dataloader = DataLoader(
-            dataset["train"], shuffle=True, batch_size=2, collate_fn=data_collator)
-        self.eval_dataloader = DataLoader(
-            dataset["valid"], batch_size=2, collate_fn=data_collator)
-        self.test_dataloader = DataLoader(
-            dataset["test"], batch_size=2, collate_fn=data_collator
-        )
+            dataset["train"], shuffle=True, batch_size=batch_size)
+        self.eval_dataloader = DataLoader(dataset["valid"], batch_size=batch_size)
+        self.test_dataloader = DataLoader(dataset["test"], batch_size=batch_size)
         self.model = model
         self.model_path = model_path
         self.device = device

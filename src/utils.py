@@ -1,17 +1,13 @@
-import numpy as np
+import yaml
 
+import numpy as np
 import wandb
 from datasets import load_dataset, load_from_disk
-from transformers import (
-    GPT2LMHeadModel,
-    DataCollatorForSeq2Seq,
-    GPT2Tokenizer,
-)
+from transformers import GPT2Tokenizer
 
-model = GPT2LMHeadModel.from_pretrained('gpt2-medium')
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2-medium', padding_side='left')
+
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2-medium')
 tokenizer.pad_token = tokenizer.eos_token
-data_collator = DataCollatorForSeq2Seq(tokenizer, model, padding='max_length', max_length=350)
 
 
 def batch_to_device(batch, device):
@@ -40,6 +36,7 @@ def tokenize_data(example):
         example["solutions.solution"],
         text_target=example["problem"],
         max_length=350,
+        padding='max_length',
         truncation=True
     )
 
@@ -98,3 +95,16 @@ def post_process(predictions, labels):
     decoded_preds = [pred.strip() for pred in decoded_preds]
     decoded_labels = [[label.strip()] for label in decoded_labels]
     return decoded_preds, decoded_labels
+
+
+def get_config_data():
+    """
+
+    :return:
+    """
+    config_path = "../config.yml"
+
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    return config

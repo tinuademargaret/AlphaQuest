@@ -1,3 +1,5 @@
+import os
+
 import torch
 import wandb
 from transformers import (
@@ -6,6 +8,7 @@ from transformers import (
 )
 
 from src.utils import (
+    get_config_data,
     load_artifact_dataset,
     tokenizer
 )
@@ -15,21 +18,25 @@ device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda")
 
-dataset = load_artifact_dataset()
-test_solutions = dataset["test"][:5]
+config = get_config_data()
 
-model = GPT2LMHeadModel.from_pretrained('gpt2-medium')
+dataset = load_artifact_dataset()
+test_solutions = dataset["test"][:config["num_test_solutions"]]
+
+model = GPT2LMHeadModel.from_pretrained(config["model_type"])
 model = model.to(device)
 model.resize_token_embeddings(len(tokenizer))
-model_path = "/Users/tinuade/Documents/alpha_quest/outputs"
+model_path = os.path.join(os.getcwd(), config["model_path"])
 
-num_epochs = 5
-optimizer = AdamW(model.parameters(), lr=5e-5)
-log_interval = 100
+num_epochs = config["num_epochs"]
+learning_rate = config["learning_rate"]
+optimizer = AdamW(model.parameters(), lr=learning_rate)
+log_interval = config["log_interval"]
+batch_size = config["batch_size"]
 
 wandb.login()
 wandb_config = {
-      "log_interval": 100,
+      "log_interval": log_interval,
       "epochs": num_epochs
       }
 wandb.init(
@@ -41,7 +48,8 @@ alpha_quest_model = AlphaQuestModel(dataset,
                                     model,
                                     model_path,
                                     device,
-                                    tokenizer
+                                    tokenizer,
+                                    batch_size
                                     )
 
 if __name__ == '__main__':
