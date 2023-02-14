@@ -4,6 +4,7 @@ from tqdm.auto import tqdm
 
 import torch
 import evaluate
+from accelerate import Accelerator
 from torch.utils.data import DataLoader
 from transformers import get_scheduler
 
@@ -42,6 +43,10 @@ class AlphaQuestModel:
 
         :return:
         """
+        accelerator = Accelerator()
+        train_dataloader, eval_dataloader, model, optimizer = accelerator.prepare(
+            self.train_dataloader, self.eval_dataloader, self.model, optimizer
+        )
         num_training_steps = num_epochs * len(self.train_dataloader)
         lr_scheduler = get_scheduler(
             "linear",
@@ -50,16 +55,17 @@ class AlphaQuestModel:
             num_training_steps=num_training_steps,
         )
         progress_bar = tqdm(range(num_training_steps))
-        wandb_run.watch(self.model, log_freq=100)
-        self.model.train()
+        wandb_run.watch(model, log_freq=100)
+        model.train()
 
         for epoch in range(num_epochs):
-            for step, batch in enumerate(self.train_dataloader):
-                batch = batch_to_device(batch, self.device)
+            for step, batch in enumerate(train_dataloader):
+                # batch = batch_to_device(batch, self.device)
 
-                outputs = self.model(**batch)
+                outputs = model(**batch)
                 train_loss = outputs.loss
-                train_loss.backward()
+                # train_loss.backward()
+                accelerator.backward(train_loss)
 
                 optimizer.step()
                 lr_scheduler.step()
@@ -71,23 +77,25 @@ class AlphaQuestModel:
                 if step % log_interval == 0:
                     wandb_run.log(metrics)
 
-            self.model.eval()
+            model.eval()
             val_loss = 0
             with torch.no_grad():
-                for step, batch in enumerate(self.eval_dataloader):
-                    batch = batch_to_device(batch, self.device)
+                for step, batch in enumerate(eval_dataloader):
+                    # batch = batch_to_device(batch, self.device)
 
-                    val_outputs = self.model(**batch)
+                    val_outputs = model(**batch)
                     val_loss += val_outputs.loss
 
                 # Average loss for the batch
                 val_metrics = {"val_loss": val_loss / len(
-                    self.eval_dataloader)}
+                    eval_dataloader)}
                 wandb_run.log({**metrics, **val_metrics})
 
-        wandb_run.finish()
-        torch.save(self.model.state_dict(), os.path.join(
-            self.model_path, "alpha_quest.pt"))
+        accelerator.wait_for_everyone()
+        self.model = accelerator.unwrap_model(model)
+        self.model.save_pretrained(os.path.join(
+            self.model_path, "alpha_quest.pt"), save_function=accelerator.save)
+        print("Training Completed")
 
     def eval(self):
         bleu_score = evaluate.load("sacrebleu")
