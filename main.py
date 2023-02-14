@@ -21,18 +21,19 @@ if torch.cuda.is_available():
 config = get_config_data()
 
 dataset = load_artifact_dataset()
-test_solutions = dataset["test"][:config["num_test_solutions"]]
+num_test_solutions = int(config["num_test_solutions"])
+test_solutions = dataset["test"][:num_test_solutions]
 
 model = GPT2LMHeadModel.from_pretrained(config["model_type"])
 model = model.to(device)
 model.resize_token_embeddings(len(tokenizer))
 model_path = os.path.join(os.getcwd(), config["model_path"])
 
-num_epochs = config["num_epochs"]
-learning_rate = config["learning_rate"]
+num_epochs = int(config["num_epochs"])
+learning_rate = float(config["learning_rate"])
 optimizer = AdamW(model.parameters(), lr=learning_rate)
-log_interval = config["log_interval"]
-batch_size = config["batch_size"]
+log_interval = int(config["log_interval"])
+batch_size = int(config["batch_size"])
 
 wandb.login()
 wandb_config = {

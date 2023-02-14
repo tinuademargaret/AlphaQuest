@@ -8,13 +8,9 @@ from torch.utils.data import DataLoader
 from transformers import get_scheduler
 
 from src.utils import (
-    get_config_data,
     batch_to_device,
     post_process,
 )
-
-
-config = get_config_data()
 
 
 class AlphaQuestModel:

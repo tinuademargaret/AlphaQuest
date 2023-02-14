@@ -65,14 +65,14 @@ def get_raw_dataset(split=None):
     return dataset
 
 
-def load_artifact_dataset(artifact="code-contests", version="latest"):
+def load_artifact_dataset(artifact="code-contests", version="v0"):
     run = wandb.init(
         project="AlphaQuest",
         job_type="dataset-creation"
     )
     dataset_artifact = run.use_artifact(f"{artifact}:{version}")
     dataset_artifact.download()
-    dataset = load_from_disk(f'./artifacts/{artifact}:{version}/processed_data')
+    dataset = load_from_disk(f'artifacts/{artifact}:{version}/processed_data')
     dataset = dataset.map(tokenize_data, batched=True, remove_columns=dataset["train"].column_names)
     dataset.set_format("torch")
     return dataset
@@ -102,7 +102,7 @@ def get_config_data():
 
     :return:
     """
-    config_path = "../config.yml"
+    config_path = "config.yml"
 
     with open(config_path) as f:
         config = yaml.safe_load(f)
