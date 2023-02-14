@@ -20,7 +20,22 @@ if torch.cuda.is_available():
 
 config = get_config_data()
 
-dataset = load_artifact_dataset()
+learning_rate = float(config["learning_rate"])
+batch_size = int(config["batch_size"])
+num_epochs = int(config["num_epochs"])
+log_interval = int(config["log_interval"])
+
+wandb.login()
+wandb_config = {
+      "log_interval": log_interval,
+      "epochs": num_epochs
+      }
+run = wandb.init(
+      project="AlphaQuest",
+      config=wandb_config
+      )
+
+dataset = load_artifact_dataset(wandb_run=run)
 num_test_solutions = int(config["num_test_solutions"])
 test_solutions = dataset["test"][:num_test_solutions]
 
@@ -29,21 +44,7 @@ model = model.to(device)
 model.resize_token_embeddings(len(tokenizer))
 model_path = os.path.join(os.getcwd(), config["model_path"])
 
-num_epochs = int(config["num_epochs"])
-learning_rate = float(config["learning_rate"])
 optimizer = AdamW(model.parameters(), lr=learning_rate)
-log_interval = int(config["log_interval"])
-batch_size = int(config["batch_size"])
-
-wandb.login()
-wandb_config = {
-      "log_interval": log_interval,
-      "epochs": num_epochs
-      }
-wandb.init(
-      project="AlphaQuest",
-      config=wandb_config
-      )
 
 alpha_quest_model = AlphaQuestModel(dataset,
                                     model,
@@ -56,7 +57,7 @@ alpha_quest_model = AlphaQuestModel(dataset,
 if __name__ == '__main__':
     alpha_quest_model.train(num_epochs,
                             optimizer,
-                            wandb,
+                            run,
                             log_interval
                             )
     eval_scores = alpha_quest_model.eval()

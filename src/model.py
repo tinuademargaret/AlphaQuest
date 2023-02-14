@@ -36,7 +36,7 @@ class AlphaQuestModel:
     def train(self,
               num_epochs,
               optimizer,
-              wandb,
+              wandb_run,
               log_interval):
         """
 
@@ -50,7 +50,7 @@ class AlphaQuestModel:
             num_training_steps=num_training_steps,
         )
         progress_bar = tqdm(range(num_training_steps))
-        wandb.watch(self.model, log_freq=100)
+        wandb_run.watch(self.model, log_freq=100)
         self.model.train()
 
         for epoch in range(num_epochs):
@@ -69,7 +69,7 @@ class AlphaQuestModel:
                 metrics = {"train_loss": train_loss}
 
                 if step % log_interval == 0:
-                    wandb.log(metrics)
+                    wandb_run.log(metrics)
 
             self.model.eval()
             val_loss = 0
@@ -83,9 +83,9 @@ class AlphaQuestModel:
                 # Average loss for the batch
                 val_metrics = {"val_loss": val_loss / len(
                     self.eval_dataloader)}
-                wandb.log({**metrics, **val_metrics})
+                wandb_run.log({**metrics, **val_metrics})
 
-        wandb.finish()
+        wandb_run.finish()
         torch.save(self.model.state_dict(), os.path.join(
             self.model_path, "alpha_quest.pt"))
 

@@ -1,7 +1,6 @@
 import yaml
 
 import numpy as np
-import wandb
 from datasets import load_dataset, load_from_disk
 from transformers import GPT2Tokenizer
 
@@ -65,12 +64,8 @@ def get_raw_dataset(split=None):
     return dataset
 
 
-def load_artifact_dataset(artifact="code-contests", version="v0"):
-    run = wandb.init(
-        project="AlphaQuest",
-        job_type="dataset-creation"
-    )
-    dataset_artifact = run.use_artifact(f"{artifact}:{version}")
+def load_artifact_dataset(wandb_run, artifact="code-contests", version="v0"):
+    dataset_artifact = wandb_run.use_artifact(f"{artifact}:{version}")
     dataset_artifact.download()
     dataset = load_from_disk(f'artifacts/{artifact}:{version}/processed_data')
     dataset = dataset.map(tokenize_data, batched=True, remove_columns=dataset["train"].column_names)
