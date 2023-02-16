@@ -25,7 +25,7 @@ class AlphaQuestModel:
                  ):
 
         self.train_dataloader = DataLoader(
-            dataset["train"], shuffle=True, batch_size=batch_size)
+            dataset["train"][:3000], shuffle=True, batch_size=batch_size)
         self.eval_dataloader = DataLoader(dataset["valid"], batch_size=batch_size)
         self.test_dataloader = DataLoader(dataset["test"], batch_size=batch_size)
         self.model = model
@@ -37,6 +37,7 @@ class AlphaQuestModel:
               num_epochs,
               optimizer,
               wandb_run,
+              schedule_type,
               log_interval):
         """
 
@@ -44,9 +45,9 @@ class AlphaQuestModel:
         """
         num_training_steps = num_epochs * len(self.train_dataloader)
         lr_scheduler = get_scheduler(
-            "linear",
+            schedule_type,
             optimizer=optimizer,
-            num_warmup_steps=0,
+            num_warmup_steps=100,
             num_training_steps=num_training_steps,
         )
         progress_bar = tqdm(range(num_training_steps))
@@ -81,8 +82,9 @@ class AlphaQuestModel:
                     val_loss += val_outputs.loss
 
                 # Average loss for the batch
-                val_metrics = {"val_loss": val_loss / len(
-                    self.eval_dataloader)}
+                val_loss = val_loss / len(
+                    self.eval_dataloader)
+                val_metrics = {"val_loss": val_loss}
                 wandb_run.log({**metrics, **val_metrics})
 
         wandb_run.finish()

@@ -1,4 +1,5 @@
 import os
+import argparse
 
 import torch
 import wandb
@@ -8,6 +9,7 @@ from transformers import (
 )
 
 from src.utils import (
+    DefaultConfig,
     get_config_data,
     load_artifact_dataset,
     tokenizer
@@ -18,12 +20,36 @@ device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda")
 
+default_config = DefaultConfig(
+    epochs=10,
+    lr=3e-5,
+    schedule_type='linear',
+    model_version='gpt2-medium'
+)
+
+
+def parse_args():
+    argparser = argparse.ArgumentParser(description='Process hyper-parameters')
+    argparser.add_argument('--epochs', type=int, default=default_config.epochs,
+                           help='number of training epochs')
+    argparser.add_argument('--lr', type=float, default=default_config.lr,
+                           help='learning_rate')
+    argparser.add_argument('--schedule_type', type=str, default=default_config.schedule_type,
+                           help='learning_rate scheduler')
+    argparser.add_argument('--model_version', type=str, default=default_config.model_version,
+                           help='version of model to use')
+    args = argparser.parse_args()
+    vars(default_config).update(vars(args))
+    return
+
+
 config = get_config_data()
 
-learning_rate = float(config["learning_rate"])
+learning_rate = default_config.lr
 batch_size = int(config["batch_size"])
-num_epochs = int(config["num_epochs"])
+num_epochs = default_config.epochs
 log_interval = int(config["log_interval"])
+schedule_type = default_config.schedule_type
 
 wandb.login()
 wandb_config = {
@@ -39,7 +65,7 @@ dataset = load_artifact_dataset(wandb_run=run)
 num_test_solutions = int(config["num_test_solutions"])
 test_solutions = dataset["test"][:num_test_solutions]
 
-model = GPT2LMHeadModel.from_pretrained(config["model_type"])
+model = GPT2LMHeadModel.from_pretrained(default_config.model_version)
 model = model.to(device)
 model.resize_token_embeddings(len(tokenizer))
 model_path = os.path.join(os.getcwd(), config["model_path"])
@@ -58,8 +84,9 @@ if __name__ == '__main__':
     alpha_quest_model.train(num_epochs,
                             optimizer,
                             run,
+                            schedule_type,
                             log_interval
                             )
-    eval_scores = alpha_quest_model.eval()
-    alpha_quest_model.generate_problems(test_solutions)
+    # eval_scores = alpha_quest_model.eval()
+    # alpha_quest_model.generate_problems(test_solutions)
 

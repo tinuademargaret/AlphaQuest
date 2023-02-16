@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 import yaml
 
 import numpy as np
@@ -7,6 +9,9 @@ from transformers import GPT2Tokenizer
 
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2-medium')
 tokenizer.pad_token = tokenizer.eos_token
+
+DefaultConfig = namedtuple("DefaultConfig",
+                           "epochs lr schedule_type model_version")
 
 
 def batch_to_device(batch, device):

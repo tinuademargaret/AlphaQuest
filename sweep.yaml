@@ -1,0 +1,28 @@
+program: main.py
+method: random
+project: AlphaQuest
+metric:
+  name: val_loss
+  goal: minimize
+parameters:
+  epochs:
+    values:
+      - 10
+      - 15
+      - 20
+  learning_rate:
+    distribution: log_uniform_values
+    min: 10e-6
+    max: 10e-5
+  schedule_type:
+    values:
+      - 'linear'
+      - 'cosine'
+  model_version:
+    values:
+      - 'gpt2-medium'
+      - 'gpt2-large'
+      - 'gpt2-xl'
+early_terminate:
+  type: hyperband
+  min_iter: 2
