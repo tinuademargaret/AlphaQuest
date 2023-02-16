@@ -1,5 +1,5 @@
 num_epochs: 10
-learning_rate: 3e5
+learning_rate: 3e-5
 model_type: 'gpt2-medium'
 model_path: "outputs"
 log_interval: 100
