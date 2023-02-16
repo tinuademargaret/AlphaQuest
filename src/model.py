@@ -23,9 +23,10 @@ class AlphaQuestModel:
                  tokenizer,
                  batch_size
                  ):
-
+        train_data = dataset["train"]
+        train_data.shard(num_shards=3, index=0)
         self.train_dataloader = DataLoader(
-            dataset["train"][:3000], shuffle=True, batch_size=batch_size)
+            train_data, shuffle=True, batch_size=batch_size)
         self.eval_dataloader = DataLoader(dataset["valid"], batch_size=batch_size)
         self.test_dataloader = DataLoader(dataset["test"], batch_size=batch_size)
         self.model = model
@@ -87,9 +88,15 @@ class AlphaQuestModel:
                 val_metrics = {"val_loss": val_loss}
                 wandb_run.log({**metrics, **val_metrics})
 
-        wandb_run.finish()
+        if not os.path.exists(self.model_path):
+            os.mkdir(self.model_path)
         torch.save(self.model.state_dict(), os.path.join(
-            self.model_path, "alpha_quest.pt"))
+                self.model_path, "alpha_quest.pt"))
+
+        # trained_model_artifact = wandb_run.Artifact("alpha_quest", type="model")
+        # trained_model_artifact.add_dir(self.model_path)
+        # wandb_run.log_artifact(trained_model_artifact)
+        wandb_run.finish()
 
     def eval(self):
         bleu_score = evaluate.load("sacrebleu")

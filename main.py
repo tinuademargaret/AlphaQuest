@@ -1,6 +1,8 @@
 import os
 import argparse
 
+from types import SimpleNamespace
+
 import torch
 import wandb
 from transformers import (
@@ -20,7 +22,7 @@ device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda")
 
-default_config = DefaultConfig(
+default_config = SimpleNamespace(
     epochs=10,
     lr=3e-5,
     schedule_type='linear',
@@ -81,6 +83,7 @@ alpha_quest_model = AlphaQuestModel(dataset,
                                     )
 
 if __name__ == '__main__':
+    parse_args()
     alpha_quest_model.train(num_epochs,
                             optimizer,
                             run,

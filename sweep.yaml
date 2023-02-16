@@ -6,10 +6,7 @@ metric:
   goal: minimize
 parameters:
   epochs:
-    values:
-      - 10
-      - 15
-      - 20
+    values:[10, 15, 20]
   learning_rate:
     distribution: log_uniform_values
     min: 10e-6
