@@ -24,7 +24,7 @@ class AlphaQuestModel:
                  batch_size
                  ):
         train_data = dataset["train"]
-        train_data.shard(num_shards=3, index=0)
+        train_data = train_data.shard(num_shards=3, index=0)
         self.train_dataloader = DataLoader(
             train_data, shuffle=True, batch_size=batch_size)
         self.eval_dataloader = DataLoader(dataset["valid"], batch_size=batch_size)

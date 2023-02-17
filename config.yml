@@ -4,5 +4,5 @@ model_type: 'gpt2-medium'
 model_path: "outputs"
 log_interval: 100
 max_length: 350
-batch_size: 8
+batch_size: 2
 num_test_solutions: 5

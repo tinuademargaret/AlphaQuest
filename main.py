@@ -11,7 +11,6 @@ from transformers import (
 )
 
 from src.utils import (
-    DefaultConfig,
     get_config_data,
     load_artifact_dataset,
     tokenizer
@@ -47,49 +46,47 @@ def parse_args():
 
 config = get_config_data()
 
-learning_rate = default_config.lr
-batch_size = int(config["batch_size"])
-num_epochs = default_config.epochs
-log_interval = int(config["log_interval"])
-schedule_type = default_config.schedule_type
 
-wandb.login()
-wandb_config = {
-      "log_interval": log_interval,
-      "epochs": num_epochs
-      }
-run = wandb.init(
-      project="AlphaQuest",
-      config=wandb_config
-      )
+def train(train_config):
+    learning_rate = train_config.lr
+    batch_size = int(config["batch_size"])
+    num_epochs = train_config.epochs
+    log_interval = int(config["log_interval"])
+    schedule_type = train_config.schedule_type
+    wandb_config = {
+          "log_interval": log_interval,
+          "epochs": num_epochs
+          }
+    run = wandb.init(
+          project="AlphaQuest",
+          config=wandb_config
+          )
 
-dataset = load_artifact_dataset(wandb_run=run)
-num_test_solutions = int(config["num_test_solutions"])
-test_solutions = dataset["test"][:num_test_solutions]
+    dataset = load_artifact_dataset(wandb_run=run)
 
-model = GPT2LMHeadModel.from_pretrained(default_config.model_version)
-model = model.to(device)
-model.resize_token_embeddings(len(tokenizer))
-model_path = os.path.join(os.getcwd(), config["model_path"])
+    model = GPT2LMHeadModel.from_pretrained(train_config.model_version)
+    model = model.to(device)
+    model.resize_token_embeddings(len(tokenizer))
+    model_path = os.path.join(os.getcwd(), config["model_path"])
 
-optimizer = AdamW(model.parameters(), lr=learning_rate)
+    optimizer = AdamW(model.parameters(), lr=learning_rate)
 
-alpha_quest_model = AlphaQuestModel(dataset,
-                                    model,
-                                    model_path,
-                                    device,
-                                    tokenizer,
-                                    batch_size
-                                    )
+    alpha_quest_model = AlphaQuestModel(dataset,
+                                        model,
+                                        model_path,
+                                        device,
+                                        tokenizer,
+                                        batch_size
+                                        )
 
-if __name__ == '__main__':
-    parse_args()
     alpha_quest_model.train(num_epochs,
                             optimizer,
                             run,
                             schedule_type,
                             log_interval
                             )
-    # eval_scores = alpha_quest_model.eval()
-    # alpha_quest_model.generate_problems(test_solutions)
 
+
+if __name__ == '__main__':
+    parse_args()
+    train(default_config)
