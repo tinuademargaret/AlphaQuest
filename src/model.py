@@ -93,9 +93,9 @@ class AlphaQuestModel:
         torch.save(self.model.state_dict(), os.path.join(
                 self.model_path, "alpha_quest.pt"))
 
-        # trained_model_artifact = wandb_run.Artifact("alpha_quest", type="model")
-        # trained_model_artifact.add_dir(self.model_path)
-        # wandb_run.log_artifact(trained_model_artifact)
+        trained_model_artifact = wandb_run.Artifact("alpha_quest", type="model")
+        trained_model_artifact.add_dir(self.model_path)
+        wandb_run.log_artifact(trained_model_artifact)
         wandb_run.finish()
 
     def eval(self):
@@ -125,13 +125,11 @@ class AlphaQuestModel:
             return bleu_results, rouge_results
 
     def generate_problems(self, solutions):
-
         problems = self.model.generate(solutions["input_ids"].to(self.device),
                                        attention_mask=solutions[
                                            "attention_mask"].to(self.device),
                                        max_length=350
                                        )
-
         with open(os.path.join(
                 self.model_path, "problems.txt"), "w") as f:
             for i, problem in enumerate(problems):

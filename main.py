@@ -64,6 +64,8 @@ def train(train_config):
 
     dataset = load_artifact_dataset(wandb_run=run)
 
+    test_solutions = dataset["tests"][:5]
+
     model = GPT2LMHeadModel.from_pretrained(train_config.model_version)
     model = model.to(device)
     model.resize_token_embeddings(len(tokenizer))
@@ -85,6 +87,7 @@ def train(train_config):
                             schedule_type,
                             log_interval
                             )
+    alpha_quest_model.generate_problems(test_solutions)
 
 
 if __name__ == '__main__':
