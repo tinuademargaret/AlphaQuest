@@ -54,17 +54,21 @@ def train(train_config):
     log_interval = int(config["log_interval"])
     schedule_type = train_config.schedule_type
     wandb_config = {
-          "log_interval": log_interval,
-          "epochs": num_epochs
-          }
+        "log_interval": log_interval,
+        "epochs": num_epochs
+    }
     run = wandb.init(
-          project="AlphaQuest",
-          config=wandb_config
-          )
+        project="AlphaQuest",
+        config=wandb_config
+    )
 
-    dataset = load_artifact_dataset(wandb_run=run)
+    train_dataset = load_artifact_dataset(wandb_run=run,
+                                          artifact="train_valid_data",
+                                          dir_name="train_valid_data")
 
-    test_solutions = dataset["tests"][:5]
+    test_dataset = load_artifact_dataset(wandb_run=run, split="test")
+
+    test_solutions = test_dataset[:5]
 
     model = GPT2LMHeadModel.from_pretrained(train_config.model_version)
     model = model.to(device)
@@ -73,7 +77,8 @@ def train(train_config):
 
     optimizer = AdamW(model.parameters(), lr=learning_rate)
 
-    alpha_quest_model = AlphaQuestModel(dataset,
+    alpha_quest_model = AlphaQuestModel(train_dataset,
+                                        test_dataset,
                                         model,
                                         model_path,
                                         device,
@@ -87,7 +92,8 @@ def train(train_config):
                             schedule_type,
                             log_interval
                             )
-    alpha_quest_model.generate_problems(test_solutions)
+
+    run.finish()
 
 
 if __name__ == '__main__':

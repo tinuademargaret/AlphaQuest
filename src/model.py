@@ -16,19 +16,18 @@ from src.utils import (
 class AlphaQuestModel:
 
     def __init__(self,
-                 dataset,
+                 train_dataset,
+                 test_dataset,
                  model,
                  model_path,
                  device,
                  tokenizer,
                  batch_size
                  ):
-        train_data = dataset["train"]
-        train_data = train_data.shard(num_shards=3, index=0)
         self.train_dataloader = DataLoader(
-            train_data, shuffle=True, batch_size=batch_size)
-        self.eval_dataloader = DataLoader(dataset["valid"], batch_size=batch_size)
-        self.test_dataloader = DataLoader(dataset["test"], batch_size=batch_size)
+            train_dataset["train"], shuffle=True, batch_size=batch_size)
+        self.eval_dataloader = DataLoader(train_dataset["test"], batch_size=batch_size)
+        self.test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
         self.model = model
         self.model_path = model_path
         self.device = device
@@ -48,7 +47,6 @@ class AlphaQuestModel:
         lr_scheduler = get_scheduler(
             schedule_type,
             optimizer=optimizer,
-            num_warmup_steps=100,
             num_training_steps=num_training_steps,
         )
         progress_bar = tqdm(range(num_training_steps))
@@ -96,7 +94,6 @@ class AlphaQuestModel:
         trained_model_artifact = wandb_run.Artifact("alpha_quest", type="model")
         trained_model_artifact.add_dir(self.model_path)
         wandb_run.log_artifact(trained_model_artifact)
-        wandb_run.finish()
 
     def eval(self):
         bleu_score = evaluate.load("sacrebleu")

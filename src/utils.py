@@ -69,11 +69,19 @@ def get_raw_dataset(split=None):
     return dataset
 
 
-def load_artifact_dataset(wandb_run, artifact="code-contests", version="v0"):
+def load_artifact_dataset(wandb_run,
+                          artifact="code-contests",
+                          version="v0",
+                          dir_name='processed_data',
+                          split=None):
     dataset_artifact = wandb_run.use_artifact(f"{artifact}:{version}")
     dataset_artifact.download()
-    dataset = load_from_disk(f'artifacts/{artifact}:{version}/processed_data')
-    dataset = dataset.map(tokenize_data, batched=True, remove_columns=dataset["train"].column_names)
+    if split:
+        dataset = load_from_disk(f'artifacts/{artifact}:{version}/{dir_name}/{split}')
+        dataset = dataset.map(tokenize_data, batched=True, remove_columns=dataset.column_names)
+    else:
+        dataset = load_from_disk(f'artifacts/{artifact}:{version}/{dir_name}')
+        dataset = dataset.map(tokenize_data, batched=True, remove_columns=dataset["train"].column_names)
     dataset.set_format("torch")
     return dataset
 
