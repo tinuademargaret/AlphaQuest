@@ -47,6 +47,7 @@ class AlphaQuestModel:
         lr_scheduler = get_scheduler(
             schedule_type,
             optimizer=optimizer,
+            num_warmup_steps=1000,
             num_training_steps=num_training_steps,
         )
         progress_bar = tqdm(range(num_training_steps))
