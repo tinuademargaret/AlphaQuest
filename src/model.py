@@ -93,10 +93,6 @@ class AlphaQuestModel:
         torch.save(self.model.state_dict(), os.path.join(
                 self.model_path, "alpha_quest.pt"))
 
-        trained_model_artifact = wandb_run.Artifact("alpha_quest", type="model")
-        trained_model_artifact.add_dir(self.model_path)
-        wandb_run.log_artifact(trained_model_artifact)
-
     def eval(self):
         bleu_score = evaluate.load("sacrebleu")
         rouge_score = evaluate.load("rouge")

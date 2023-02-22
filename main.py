@@ -96,6 +96,11 @@ def train(train_config):
     print(f"BLEU score: {scores[0]['score']:.2f}")
     print(f"ROUGE score: {scores[1]}")
     alpha_quest_model.generate_problems(test_solutions)
+
+    trained_model_artifact = run.Artifact("alpha_quest", type="model")
+    trained_model_artifact.add_dir(model_path)
+    run.log_artifact(trained_model_artifact)
+
     run.finish()
 
 
