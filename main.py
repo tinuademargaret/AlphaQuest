@@ -68,7 +68,7 @@ def train(train_config):
 
     test_dataset = load_artifact_dataset(wandb_run=run, split="test")
 
-    test_solutions = test_dataset[:5]
+    test_solutions = train_dataset["train"][:5]
 
     model = GPT2LMHeadModel.from_pretrained(train_config.model_version)
     model = model.to(device)
@@ -86,13 +86,16 @@ def train(train_config):
                                         batch_size
                                         )
 
-    alpha_quest_model.train(num_epochs,
-                            optimizer,
-                            run,
-                            schedule_type,
-                            log_interval
-                            )
-
+   # alpha_quest_model.train(num_epochs,
+    #                        optimizer,
+      #                      run,
+     #                       schedule_type,
+       #                     log_interval
+        #                    )
+   # scores = alpha_quest_model.eval()
+    #print(f"BLEU score: {scores[0]['score']:.2f}")
+   # print(f"ROUGE score: {scores[1]}")
+    alpha_quest_model.generate_problems(test_solutions)
     run.finish()
 
 

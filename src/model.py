@@ -99,7 +99,7 @@ class AlphaQuestModel:
     def eval(self):
         bleu_score = evaluate.load("sacrebleu")
         rouge_score = evaluate.load("rouge")
-
+        self.model.load_state_dict(torch.load(os.path.join(self.model_path, "alpha_quest.pt")))
         self.model.eval()
 
         with torch.no_grad():
@@ -123,6 +123,8 @@ class AlphaQuestModel:
             return bleu_results, rouge_results
 
     def generate_problems(self, solutions):
+        self.model.load_state_dict(torch.load(os.path.join(self.model_path, "alpha_quest.pt")))
+        self.model.eval()
         problems = self.model.generate(solutions["input_ids"].to(self.device),
                                        attention_mask=solutions[
                                            "attention_mask"].to(self.device),

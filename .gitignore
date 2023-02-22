@@ -132,3 +132,5 @@ dmypy.json
 # wandb stuff
 wandb
 artifacts
+#model outputs
+outputs
