@@ -3,6 +3,9 @@ learning_rate: 3e-5
 model_type: 'gpt2-medium'
 model_path: "outputs"
 log_interval: 100
-max_length: 350
+max_length: 241
 batch_size: 2
 num_test_solutions: 5
+artifact_name: "train_valid_data"
+artifact_dir: "train_valid_data"
+artifact_version: "v1"

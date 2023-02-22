@@ -89,6 +89,7 @@ class AlphaQuestModel:
 
         if not os.path.exists(self.model_path):
             os.mkdir(self.model_path)
+
         torch.save(self.model.state_dict(), os.path.join(
                 self.model_path, "alpha_quest.pt"))
 
@@ -99,7 +100,8 @@ class AlphaQuestModel:
     def eval(self):
         bleu_score = evaluate.load("sacrebleu")
         rouge_score = evaluate.load("rouge")
-        self.model.load_state_dict(torch.load(os.path.join(self.model_path, "alpha_quest.pt")))
+        self.model.load_state_dict(torch.load(
+            os.path.join(self.model_path, "alpha_quest.pt")))
         self.model.eval()
 
         with torch.no_grad():
@@ -107,7 +109,7 @@ class AlphaQuestModel:
                 generated_tokens = self.model.generate(
                     batch["input_ids"].to(self.device),
                     attention_mask=batch["attention_mask"].to(self.device),
-                    max_length=350,
+                    max_length=241,
                 )
                 labels = batch["labels"]
 
@@ -123,12 +125,13 @@ class AlphaQuestModel:
             return bleu_results, rouge_results
 
     def generate_problems(self, solutions):
-        self.model.load_state_dict(torch.load(os.path.join(self.model_path, "alpha_quest.pt")))
+        self.model.load_state_dict(torch.load(
+            os.path.join(self.model_path, "alpha_quest.pt")))
         self.model.eval()
         problems = self.model.generate(solutions["input_ids"].to(self.device),
                                        attention_mask=solutions[
                                            "attention_mask"].to(self.device),
-                                       max_length=350
+                                       max_length=241
                                        )
         with open(os.path.join(
                 self.model_path, "problems.txt"), "w") as f:

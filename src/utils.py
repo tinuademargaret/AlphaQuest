@@ -39,7 +39,7 @@ def tokenize_data(example):
     return tokenizer(
         example["solutions.solution"],
         text_target=example["problem"],
-        max_length=350,
+        max_length=241,
         padding='max_length',
         truncation=True
     )
