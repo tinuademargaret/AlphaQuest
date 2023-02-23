@@ -105,7 +105,7 @@ class AlphaQuestModel:
                 generated_tokens = self.model.generate(
                     batch["input_ids"].to(self.device),
                     attention_mask=batch["attention_mask"].to(self.device),
-                    max_length=241,
+                    max_length=450,
                 )
                 labels = batch["labels"]
 
@@ -127,7 +127,7 @@ class AlphaQuestModel:
         problems = self.model.generate(solutions["input_ids"].to(self.device),
                                        attention_mask=solutions[
                                            "attention_mask"].to(self.device),
-                                       max_length=241
+                                       max_length=450
                                        )
         with open(os.path.join(
                 self.model_path, "problems.txt"), "w") as f:

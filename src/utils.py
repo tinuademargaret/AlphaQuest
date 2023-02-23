@@ -31,15 +31,28 @@ def extract_solution(example):
     return example
 
 
-def tokenize_data(example):
+def tokenize_train_data(example):
     """
 
     :return:
     """
     return tokenizer(
-        example["solutions.solution"],
-        text_target=example["problem"],
-        max_length=241,
+        example["input_text"],
+        max_length=450,
+        padding='max_length',
+        truncation=True
+    )
+
+
+def tokenize_test_data(example):
+    """
+
+    :return:
+    """
+    return tokenizer(
+        example["solutions.solution"]+"$$:",
+        text_target=example['problem'],
+        max_length=450,
         padding='max_length',
         truncation=True
     )
@@ -64,7 +77,7 @@ def get_raw_dataset(split=None):
     dataset = dataset.filter(lambda example: len(example['solutions.solution']) > 0)
     dataset = dataset.map(extract_problem, batched=True)
     dataset = dataset.map(extract_solution, batched=True)
-    dataset = dataset.map(tokenize_data, batched=True, remove_columns=dataset["train"].column_names)
+    dataset = dataset.map(tokenize_test_data, batched=True, remove_columns=dataset["train"].column_names)
     dataset.set_format("torch")
     return dataset
 
@@ -78,10 +91,10 @@ def load_artifact_dataset(wandb_run,
     dataset_artifact.download()
     if split:
         dataset = load_from_disk(f'artifacts/{artifact}:{version}/{dir_name}/{split}')
-        dataset = dataset.map(tokenize_data, batched=True, remove_columns=dataset.column_names)
+        dataset = dataset.map(tokenize_test_data, remove_columns=dataset.column_names)
     else:
         dataset = load_from_disk(f'artifacts/{artifact}:{version}/{dir_name}')
-        dataset = dataset.map(tokenize_data, batched=True, remove_columns=dataset["train"].column_names)
+        dataset = dataset.map(tokenize_train_data, batched=True, remove_columns=dataset["train"].column_names)
     dataset.set_format("torch")
     return dataset
 
