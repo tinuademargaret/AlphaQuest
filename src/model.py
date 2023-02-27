@@ -21,11 +21,12 @@ class AlphaQuestModel:
                  model_path,
                  device,
                  tokenizer,
-                 batch_size
+                 batch_size,
+                 data_collator
                  ):
         self.train_dataloader = DataLoader(
-            train_dataset["train"], shuffle=True, batch_size=batch_size)
-        self.eval_dataloader = DataLoader(train_dataset["test"], batch_size=batch_size)
+            train_dataset["train"], shuffle=True, batch_size=batch_size, collate_fn=data_collator)
+        self.eval_dataloader = DataLoader(train_dataset["test"], batch_size=batch_size, collate_fn=data_collator)
         self.model = model
         self.model_path = model_path
         self.device = device
@@ -59,7 +60,7 @@ class AlphaQuestModel:
             for step, batch in enumerate(self.train_dataloader):
                 batch = batch_to_device(batch, self.device)
 
-                outputs = self.model(**batch, labels=batch["input_ids"])
+                outputs = self.model(**batch)
                 train_loss = outputs.loss
                 train_loss.backward()
 
@@ -105,7 +106,7 @@ class AlphaQuestModel:
                     attention_mask=batch["attention_mask"].to(self.device),
                     max_length=450,
                 )
-                labels = batch["input_ids"]
+                labels = batch["labels"]
 
                 decoded_preds, decoded_labels = post_process(
                     generated_tokens, labels)

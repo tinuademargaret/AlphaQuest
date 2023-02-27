@@ -38,8 +38,6 @@ def tokenize_train_data(example):
     """
     return tokenizer(
         example["input_text"],
-        max_length=450,
-        padding='max_length',
         truncation=True
     )
 

@@ -7,6 +7,7 @@ import torch
 import wandb
 from transformers import (
     AdamW,
+    DataCollatorForLanguageModeling,
     GPT2LMHeadModel
 )
 
@@ -67,6 +68,8 @@ def train(train_config):
                                           version=config["artifact_version"],
                                           dir_name=config["artifact_dir"])
 
+    data_collator = DataCollatorForLanguageModeling(tokenizer)
+
     model = GPT2LMHeadModel.from_pretrained(train_config.model_version)
     model = model.to(device)
     model.resize_token_embeddings(len(tokenizer))
@@ -79,7 +82,8 @@ def train(train_config):
                                         model_path,
                                         device,
                                         tokenizer,
-                                        batch_size
+                                        batch_size,
+                                        data_collator
                                         )
     alpha_quest_model.train(num_epochs,
                             optimizer,
