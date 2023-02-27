@@ -17,7 +17,6 @@ class AlphaQuestModel:
 
     def __init__(self,
                  train_dataset,
-                 test_dataset,
                  model,
                  model_path,
                  device,
@@ -27,7 +26,6 @@ class AlphaQuestModel:
         self.train_dataloader = DataLoader(
             train_dataset["train"], shuffle=True, batch_size=batch_size)
         self.eval_dataloader = DataLoader(train_dataset["test"], batch_size=batch_size)
-        self.test_dataloader = DataLoader(test_dataset, batch_size=batch_size)
         self.model = model
         self.model_path = model_path
         self.device = device
@@ -54,11 +52,14 @@ class AlphaQuestModel:
         wandb_run.watch(self.model, log_freq=100)
         self.model.train()
 
+        if not os.path.exists(self.model_path):
+            os.mkdir(self.model_path)
+
         for epoch in range(num_epochs):
             for step, batch in enumerate(self.train_dataloader):
                 batch = batch_to_device(batch, self.device)
 
-                outputs = self.model(**batch)
+                outputs = self.model(**batch, labels=batch["input_ids"])
                 train_loss = outputs.loss
                 train_loss.backward()
 
@@ -87,11 +88,8 @@ class AlphaQuestModel:
                 val_metrics = {"val_loss": val_loss}
                 wandb_run.log({**metrics, **val_metrics})
 
-        if not os.path.exists(self.model_path):
-            os.mkdir(self.model_path)
-
-        torch.save(self.model.state_dict(), os.path.join(
-                self.model_path, "alpha_quest.pt"))
+            torch.save(self.model.state_dict(), os.path.join(
+                self.model_path, f"gpt_alpha_quest_{epoch}.pt"))
 
     def eval(self):
         bleu_score = evaluate.load("sacrebleu")
@@ -101,13 +99,13 @@ class AlphaQuestModel:
         self.model.eval()
 
         with torch.no_grad():
-            for batch in tqdm(self.test_dataloader):
+            for batch in tqdm(self.eval_dataloader):
                 generated_tokens = self.model.generate(
                     batch["input_ids"].to(self.device),
                     attention_mask=batch["attention_mask"].to(self.device),
                     max_length=450,
                 )
-                labels = batch["labels"]
+                labels = batch["input_ids"]
 
                 decoded_preds, decoded_labels = post_process(
                     generated_tokens, labels)
@@ -120,15 +118,19 @@ class AlphaQuestModel:
             rouge_results = rouge_score.compute()
             return bleu_results, rouge_results
 
-    def generate_problems(self, solutions):
+    def generate_problems(self):
         self.model.load_state_dict(torch.load(
             os.path.join(self.model_path, "alpha_quest.pt")))
         self.model.eval()
-        problems = self.model.generate(solutions["input_ids"].to(self.device),
-                                       attention_mask=solutions[
-                                           "attention_mask"].to(self.device),
-                                       max_length=450
-                                       )
+
+        problems = []
+        for batch in self.eval_dataloader:
+            batch_problem = self.model.generate(batch["input_ids"].to(self.device),
+                                                attention_mask=batch[
+                                                    "attention_mask"].to(self.device),
+                                                max_length=450
+                                                )
+            problems.append(batch_problem)
         with open(os.path.join(
                 self.model_path, "problems.txt"), "w") as f:
             for i, problem in enumerate(problems):
