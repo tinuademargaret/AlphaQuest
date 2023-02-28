@@ -48,10 +48,8 @@ def tokenize_test_data(example):
     :return:
     """
     return tokenizer(
-        example["solutions.solution"]+"$$:",
-        text_target=example['problem'],
-        max_length=450,
-        padding='max_length',
+        example["input_text"],
+        text_target=example['target'],
         truncation=True
     )
 
@@ -92,7 +90,10 @@ def load_artifact_dataset(wandb_run,
         dataset = dataset.map(tokenize_test_data, remove_columns=dataset.column_names)
     else:
         dataset = load_from_disk(f'artifacts/{artifact}:{version}/{dir_name}')
-        dataset = dataset.map(tokenize_train_data, batched=True, remove_columns=dataset["train"].column_names)
+        dataset["train"] = dataset["train"].map(
+            tokenize_train_data, batched=True, remove_columns=dataset["train"].column_names)
+        dataset["test"] = dataset["test"].map(
+            tokenize_test_data, batched=True, remove_columns=dataset["test"].column_names)
     dataset.set_format("torch")
     return dataset
 

@@ -63,12 +63,12 @@ def train(train_config):
         config=wandb_config
     )
 
-    train_dataset = load_artifact_dataset(wandb_run=run,
+    dataset = load_artifact_dataset(wandb_run=run,
                                           artifact=config["artifact_name"],
                                           version=config["artifact_version"],
                                           dir_name=config["artifact_dir"])
 
-    data_collator = DataCollatorForLanguageModeling(tokenizer)
+    data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
 
     model = GPT2LMHeadModel.from_pretrained(train_config.model_version)
     model = model.to(device)
@@ -77,7 +77,7 @@ def train(train_config):
 
     optimizer = AdamW(model.parameters(), lr=learning_rate)
 
-    alpha_quest_model = AlphaQuestModel(train_dataset,
+    alpha_quest_model = AlphaQuestModel(dataset,
                                         model,
                                         model_path,
                                         device,

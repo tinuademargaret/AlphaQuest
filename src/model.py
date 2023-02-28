@@ -16,7 +16,7 @@ from src.utils import (
 class AlphaQuestModel:
 
     def __init__(self,
-                 train_dataset,
+                 dataset,
                  model,
                  model_path,
                  device,
@@ -25,8 +25,8 @@ class AlphaQuestModel:
                  data_collator
                  ):
         self.train_dataloader = DataLoader(
-            train_dataset["train"], shuffle=True, batch_size=batch_size, collate_fn=data_collator)
-        self.eval_dataloader = DataLoader(train_dataset["test"], batch_size=batch_size, collate_fn=data_collator)
+            dataset["train"], shuffle=True, batch_size=batch_size, collate_fn=data_collator)
+        self.eval_dataloader = DataLoader(dataset["test"], batch_size=batch_size, collate_fn=data_collator)
         self.model = model
         self.model_path = model_path
         self.device = device

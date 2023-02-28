@@ -8,4 +8,4 @@ batch_size: 1
 num_test_solutions: 5
 artifact_name: "train_valid_data"
 artifact_dir: "train_valid_data"
-artifact_version: "v2"
+artifact_version: "v3"
