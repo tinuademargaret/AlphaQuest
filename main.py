@@ -21,6 +21,8 @@ from src.model import AlphaQuestModel
 device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda")
+# Use tf32 precision
+torch.backends.cuda.matmul.allow_tf32 = True
 
 default_config = SimpleNamespace(
     epochs=10,
