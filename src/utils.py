@@ -4,14 +4,6 @@ import yaml
 
 import numpy as np
 from datasets import load_dataset, load_from_disk
-from transformers import GPT2Tokenizer
-
-
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2-medium')
-tokenizer.pad_token = tokenizer.eos_token
-
-DefaultConfig = namedtuple("DefaultConfig",
-                           "epochs lr schedule_type model_version")
 
 
 def batch_to_device(batch, device):
@@ -29,29 +21,6 @@ def extract_problem(example):
 def extract_solution(example):
     example["solutions.solution"] = example["solutions.solution"][0]
     return example
-
-
-def tokenize_train_data(example):
-    """
-
-    :return:
-    """
-    return tokenizer(
-        example["input_text"],
-        truncation=True
-    )
-
-
-def tokenize_test_data(example):
-    """
-
-    :return:
-    """
-    return tokenizer(
-        example["input_text"],
-        text_target=example['target'],
-        truncation=True
-    )
 
 
 def get_raw_dataset(split=None):
@@ -73,8 +42,6 @@ def get_raw_dataset(split=None):
     dataset = dataset.filter(lambda example: len(example['solutions.solution']) > 0)
     dataset = dataset.map(extract_problem, batched=True)
     dataset = dataset.map(extract_solution, batched=True)
-    dataset = dataset.map(tokenize_test_data, batched=True, remove_columns=dataset["train"].column_names)
-    dataset.set_format("torch")
     return dataset
 
 
@@ -87,18 +54,12 @@ def load_artifact_dataset(wandb_run,
     dataset_artifact.download()
     if split:
         dataset = load_from_disk(f'artifacts/{artifact}:{version}/{dir_name}/{split}')
-        dataset = dataset.map(tokenize_test_data, remove_columns=dataset.column_names)
     else:
         dataset = load_from_disk(f'artifacts/{artifact}:{version}/{dir_name}')
-        dataset["train"] = dataset["train"].map(
-            tokenize_train_data, batched=True, remove_columns=dataset["train"].column_names)
-        dataset["test"] = dataset["test"].map(
-            tokenize_test_data, batched=True, remove_columns=dataset["test"].column_names)
-    dataset.set_format("torch")
     return dataset
 
 
-def post_process(predictions, labels):
+def post_process(predictions, labels, tokenizer):
     """
 
     :return:
@@ -117,14 +78,19 @@ def post_process(predictions, labels):
     return decoded_preds, decoded_labels
 
 
-def get_config_data():
-    """
+class Tokenizer:
+    def __init__(self, tokenizer):
+        self.tokenizer = tokenizer
 
-    :return:
-    """
-    config_path = "config.yml"
+    def tokenize_train_data(self, example):
+        return self.tokenizer(
+            example["input_text"],
+            truncation=True
+        )
 
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-
-    return config
+    def tokenize_test_data(self, example):
+        return self.tokenizer(
+            example["input_text"],
+            text_target=example['target'],
+            truncation=True
+        )

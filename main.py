@@ -1,61 +1,64 @@
 import os
-import argparse
-
-from types import SimpleNamespace
+import logging
+import sys
 
 import torch
 import wandb
+from accelerate import Accelerator, DistributedType
 from transformers import (
     AdamW,
+    AutoConfig,
+    AutoModel,
+    AutoTokenizer,
     DataCollatorForLanguageModeling,
-    GPT2LMHeadModel
+    HfArgumentParser
 )
-
+from src.arguments import (
+    ModelArguments,
+    TrainingArguments
+)
 from src.utils import (
-    get_config_data,
     load_artifact_dataset,
-    tokenizer
+    Tokenizer
 )
 from src.model import AlphaQuestModel
 
 device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda")
+
 # Use tf32 precision
 torch.backends.cuda.matmul.allow_tf32 = True
 
-default_config = SimpleNamespace(
-    epochs=10,
-    lr=3e-5,
-    schedule_type='linear',
-    model_version='gpt2-medium'
-)
+logger = logging.getLogger(__name__)
 
 
-def parse_args():
-    argparser = argparse.ArgumentParser(description='Process hyper-parameters')
-    argparser.add_argument('--epochs', type=int, default=default_config.epochs,
-                           help='number of training epochs')
-    argparser.add_argument('--lr', type=float, default=default_config.lr,
-                           help='learning_rate')
-    argparser.add_argument('--schedule_type', type=str, default=default_config.schedule_type,
-                           help='learning_rate scheduler')
-    argparser.add_argument('--model_version', type=str, default=default_config.model_version,
-                           help='version of model to use')
-    args = argparser.parse_args()
-    vars(default_config).update(vars(args))
-    return
+def main():
+    parser = HfArgumentParser((ModelArguments, TrainingArguments))
+    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
+        # If we pass only one argument to the script, and it's the path to a json file,
+        # let's parse it to get our arguments.
+        model_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+    else:
+        model_args, training_args = parser.parse_args_into_dataclasses()
 
+    accelerator = Accelerator(gradient_accumulation_steps=training_args.gradient_accumulation_steps)
 
-config = get_config_data()
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        level=logging.INFO,
+    )
+    logger.info(accelerator.state)
+    # logging for only one process per machine
+    logger.setLevel(logging.INFO if accelerator.is_local_main_process else logging.ERROR)
 
-
-def train(train_config):
-    learning_rate = train_config.lr
-    batch_size = int(config["batch_size"])
-    num_epochs = train_config.epochs
-    log_interval = int(config["log_interval"])
-    schedule_type = train_config.schedule_type
+    learning_rate = training_args.learning_rate
+    train_batch_size = training_args.per_device_train_batch_size
+    eval_batch_size = training_args.per_device_eval_batch_size
+    num_epochs = training_args.epochs
+    log_interval = training_args.log_interval
+    schedule_type = training_args.schedule_type
     wandb_config = {
         "log_interval": log_interval,
         "epochs": num_epochs
@@ -65,46 +68,95 @@ def train(train_config):
         config=wandb_config
     )
 
-    dataset = load_artifact_dataset(wandb_run=run,
-                                          artifact=config["artifact_name"],
-                                          version=config["artifact_version"],
-                                          dir_name=config["artifact_dir"])
+    if model_args.tokenizer_name:
+        tokenizer = AutoTokenizer.from_pretrained(model_args.tokenizer_name)
+    elif model_args.model_name_or_path:
+        tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
+    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer_class = Tokenizer(tokenizer)
+
+    config = AutoConfig.from_pretrained(model_args.model_name_or_path)
+    model = AutoModel.from_pretrained(
+            model_args.model_name_or_path,
+            from_tf=bool(".ckpt" in model_args.model_name_or_path),
+            config=config
+        )
+    model.resize_token_embeddings(len(tokenizer))
+    model = accelerator.prepare(model)
+
+    if training_args.do_train:
+        train_dataset = load_artifact_dataset(wandb_run=run,
+                                              artifact=training_args.data_name,
+                                              version=training_args.data_version,
+                                              dir_name=training_args.data_dir,
+                                              split='train')
+    else:
+        train_dataset = None
+
+    if training_args.do_eval:
+        eval_dataset = load_artifact_dataset(wandb_run=run,
+                                             artifact=training_args.data_name,
+                                             version=training_args.data_version,
+                                             dir_name=training_args.data_dir,
+                                             split='test')
+    else:
+        eval_dataset = None
+
+    with accelerator.main_process_first():
+        if train_dataset:
+            tokenized_train_data = train_dataset.map(
+                tokenizer_class.tokenize_train_data,
+                batched=True,
+                remove_columns=train_dataset.column_names,
+                return_tensors='pt'
+            )
+        if eval_dataset:
+            tokenized_eval_data = eval_dataset.map(
+                tokenizer_class.tokenize_test_data,
+                batched=True,
+                remove_columns=eval_dataset.column_names,
+                return_tensors='pt'
+            )
 
     data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
 
-    model = GPT2LMHeadModel.from_pretrained(train_config.model_version)
-    model = model.to(device)
-    model.resize_token_embeddings(len(tokenizer))
-    model_path = os.path.join(os.getcwd(), config["model_path"])
+    output_dir = os.path.join(os.getcwd(), model_args.output_dir)
 
     optimizer = AdamW(model.parameters(), lr=learning_rate)
 
-    alpha_quest_model = AlphaQuestModel(dataset,
+    alpha_quest_model = AlphaQuestModel(tokenized_train_data,
+                                        tokenized_eval_data,
                                         model,
-                                        model_path,
+                                        output_dir,
                                         device,
                                         tokenizer,
-                                        batch_size,
+                                        train_batch_size,
+                                        eval_batch_size,
                                         data_collator
                                         )
-    alpha_quest_model.train(num_epochs,
-                            optimizer,
-                            run,
-                            schedule_type,
-                            log_interval
-                            )
-    scores = alpha_quest_model.eval()
-    print(f"BLEU score: {scores[0]['score']:.2f}")
-    print(f"ROUGE score: {scores[1]}")
-    alpha_quest_model.generate_problems()
+    if training_args.do_train:
+        alpha_quest_model.train(num_epochs,
+                                optimizer,
+                                run,
+                                schedule_type,
+                                training_args.gradient_accumulation_steps,
+                                log_interval,
+                                accelerator
+                                )
+    if training_args.do_eval:
+        scores = alpha_quest_model.eval()
+        print(f"BLEU score: {scores[0]['score']:.2f}")
+        print(f"ROUGE score: {scores[1]}")
+
+    if training_args.do_predict:
+        alpha_quest_model.generate_problems()
 
     trained_model_artifact = run.Artifact("alpha_quest", type="model")
-    trained_model_artifact.add_dir(model_path)
+    trained_model_artifact.add_dir(output_dir)
     run.log_artifact(trained_model_artifact)
 
     run.finish()
 
 
 if __name__ == '__main__':
-    parse_args()
-    train(default_config)
+    main()

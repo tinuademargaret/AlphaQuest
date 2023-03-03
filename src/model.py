@@ -1,3 +1,4 @@
+import math
 import os
 
 from tqdm.auto import tqdm
@@ -8,7 +9,6 @@ from torch.utils.data import DataLoader
 from transformers import get_scheduler
 
 from src.utils import (
-    batch_to_device,
     post_process,
 )
 
@@ -16,87 +16,112 @@ from src.utils import (
 class AlphaQuestModel:
 
     def __init__(self,
-                 dataset,
+                 train_dataset,
+                 eval_dataset,
                  model,
-                 model_path,
+                 output_dir,
                  device,
                  tokenizer,
-                 batch_size,
+                 train_batch_size,
+                 eval_batch_size,
                  data_collator
                  ):
         self.train_dataloader = DataLoader(
-            dataset["train"], shuffle=True, batch_size=batch_size, collate_fn=data_collator)
-        self.eval_dataloader = DataLoader(dataset["test"], batch_size=batch_size, collate_fn=data_collator)
+            train_dataset, shuffle=True, batch_size=train_batch_size, collate_fn=data_collator)
+        self.eval_dataloader = DataLoader(eval_dataset, batch_size=eval_batch_size, collate_fn=data_collator)
         self.model = model
-        self.model_path = model_path
+        self.output_dir = output_dir
         self.device = device
         self.tokenizer = tokenizer
+        self.train_batch_size = train_batch_size
+        self.eval_batch_size = eval_batch_size
 
     def train(self,
               num_epochs,
               optimizer,
               wandb_run,
               schedule_type,
-              log_interval):
+              gradient_accumulation_steps,
+              log_interval,
+              accelerator,
+              num_warmup_steps=1000
+              ):
         """
 
         :return:
         """
-        num_training_steps = num_epochs * len(self.train_dataloader)
+        num_update_steps_per_epoch = math.ceil(len(self.train_dataloader) / gradient_accumulation_steps)
+        max_train_steps = num_epochs * num_update_steps_per_epoch
         lr_scheduler = get_scheduler(
             schedule_type,
             optimizer=optimizer,
-            num_warmup_steps=1000,
-            num_training_steps=num_training_steps,
+            num_warmup_steps=num_warmup_steps,
+            num_training_steps=max_train_steps,
         )
-        progress_bar = tqdm(range(num_training_steps))
+        optimizer, self.train_dataloader, self.eval_dataloader, lr_scheduler = accelerator.prepare(
+            optimizer, self.train_dataloader, self.eval_dataloader, lr_scheduler
+        )
+
+        progress_bar = tqdm(
+            range(int(max_train_steps / accelerator.num_processes)), disable=not accelerator.is_local_main_process
+        )
+        completed_steps = 0
+
         wandb_run.watch(self.model, log_freq=100)
         self.model.train()
 
-        if not os.path.exists(self.model_path):
-            os.mkdir(self.model_path)
+        if not os.path.exists(self.output_dir):
+            os.mkdir(self.output_dir)
 
         for epoch in range(num_epochs):
             for step, batch in enumerate(self.train_dataloader):
-                batch = batch_to_device(batch, self.device)
-
                 outputs = self.model(**batch)
                 train_loss = outputs.loss
-                train_loss.backward()
+                train_loss = train_loss / gradient_accumulation_steps
 
-                optimizer.step()
-                lr_scheduler.step()
-                optimizer.zero_grad()
-                progress_bar.update(1)
+                accelerator.backward(train_loss)
 
-                metrics = {"train_loss": train_loss}
+                if step % gradient_accumulation_steps == 0 or step == len(self.train_dataloader) - 1:
+                    optimizer.step()
+                    lr_scheduler.step()
+                    optimizer.zero_grad()
+                    progress_bar.update(1)
+                    completed_steps += 1
 
-                if step % log_interval == 0:
-                    wandb_run.log(metrics)
+                    metrics = {"train_loss": train_loss}
+
+                    if step % log_interval == 0:
+                        wandb_run.log(metrics)
+
+                if completed_steps >= max_train_steps:
+                    break
 
             self.model.eval()
-            val_loss = 0
-            with torch.no_grad():
-                for step, batch in enumerate(self.eval_dataloader):
-                    batch = batch_to_device(batch, self.device)
-
+            losses = []
+            for step, batch in enumerate(self.eval_dataloader):
+                with torch.no_grad():
                     val_outputs = self.model(**batch)
-                    val_loss += val_outputs.loss
+                val_loss = val_outputs.loss
+                losses.append(accelerator.gather(val_loss.repeat(self.eval_batch_size)))
 
-                # Average loss for the batch
-                val_loss = val_loss / len(
-                    self.eval_dataloader)
-                val_metrics = {"val_loss": val_loss}
-                wandb_run.log({**metrics, **val_metrics})
+            losses = torch.cat(losses)
+            losses = losses[: len(self.eval_dataloader)]
 
-            torch.save(self.model.state_dict(), os.path.join(
-                self.model_path, f"gpt_alpha_quest_{epoch}.pt"))
+            val_metrics = {"val_loss": torch.mean(losses)}
+            wandb_run.log({**metrics, **val_metrics})
+
+            output_file = f"epoch_{epoch}"
+            accelerator.save_state(
+                os.path.join(self.output_dir, output_file)
+            )
+        accelerator.wait_for_everyone()
+        self.model = accelerator.unwrap_model(self.model)
 
     def eval(self):
         bleu_score = evaluate.load("sacrebleu")
         rouge_score = evaluate.load("rouge")
         self.model.load_state_dict(torch.load(
-            os.path.join(self.model_path, "alpha_quest.pt")))
+            os.path.join(self.output_dir, "alpha_quest.pt")))
         self.model.eval()
 
         with torch.no_grad():
@@ -109,7 +134,7 @@ class AlphaQuestModel:
                 labels = batch["labels"]
 
                 decoded_preds, decoded_labels = post_process(
-                    generated_tokens, labels)
+                    generated_tokens, labels, self.tokenizer)
                 bleu_score.add_batch(
                     predictions=decoded_preds, references=decoded_labels)
                 rouge_score.add_batch(
@@ -121,7 +146,7 @@ class AlphaQuestModel:
 
     def generate_problems(self):
         self.model.load_state_dict(torch.load(
-            os.path.join(self.model_path, "alpha_quest.pt")))
+            os.path.join(self.output_dir, "alpha_quest.pt")))
         self.model.eval()
 
         problems = []
@@ -133,7 +158,7 @@ class AlphaQuestModel:
                                                 )
             problems.append(batch_problem)
         with open(os.path.join(
-                self.model_path, "problems.txt"), "w") as f:
+                self.output_dir, "problems.txt"), "w") as f:
             for i, problem in enumerate(problems):
                 f.write("{}: {}".format(i, self.tokenizer.decode(
                     problem, skip_special_tokens=True)))
