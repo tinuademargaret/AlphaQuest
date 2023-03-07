@@ -7,9 +7,8 @@ import wandb
 from accelerate import Accelerator
 from transformers import (
     AdamW,
-    AutoConfig,
     T5ForConditionalGeneration,
-    T5Tokenizer,
+    AutoTokenizer,
     DataCollatorForSeq2Seq,
     HfArgumentParser
 )
@@ -66,9 +65,9 @@ def main():
     )
 
     if model_args.tokenizer_name:
-        tokenizer = T5Tokenizer.from_pretrained(model_args.tokenizer_name)
+        tokenizer = AutoTokenizer.from_pretrained(model_args.tokenizer_name)
     elif model_args.model_name_or_path:
-        tokenizer = T5Tokenizer.from_pretrained(model_args.model_name_or_path)
+        tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer_class = Tokenizer(tokenizer)
 
