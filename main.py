@@ -104,15 +104,15 @@ def main():
                 tokenizer_class.tokenize_data,
                 batched=True,
                 remove_columns=train_dataset.column_names,
-                return_tensors='pt'
             )
+            model_inputs.set_format(type="torch")
         if eval_dataset:
             eval_model_inputs = eval_dataset.map(
                 tokenizer_class.tokenize_data,
                 batched=True,
                 remove_columns=eval_dataset.column_names,
-                return_tensors='pt'
             )
+            eval_model_inputs.set_format(type="torch")
 
     output_dir = os.path.join(os.getcwd(), model_args.output_dir)
 
