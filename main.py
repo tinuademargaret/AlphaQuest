@@ -55,7 +55,7 @@ def main():
     eval_batch_size = training_args.per_device_eval_batch_size
     num_epochs = training_args.epochs
     log_interval = training_args.log_interval
-    schedule_type = training_args.schedule_type
+    schedule_type = training_args.lr_scheduler
     wandb_config = {
         "log_interval": log_interval,
         "epochs": num_epochs
