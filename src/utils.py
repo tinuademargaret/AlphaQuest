@@ -81,20 +81,25 @@ def post_process(predictions, labels, tokenizer):
 class Tokenizer:
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
-        self.task_prefix = "generate problem: "
+        self.prefix = "generate problem: "
 
-    def tokenize_input_data(self, example):
-        return self.tokenizer(
-            self.task_prefix + example,
-            padding="longest",
-            max_length=500,
-            truncation=True
-        )
+    def tokenize_data(self, examples):
+        solutions = examples['solutions.solution']
+        problems = examples['problem']
 
-    def tokenize_target_data(self, example):
-        return self.tokenizer(
-            example["problem"],
-            padding="longest",
-            max_length=400,
-            truncation=True
-        )
+        inputs = [self.prefix + solution for solution in solutions]
+        model_inputs = self.tokenizer(inputs, max_length=500, padding="max_length", truncation=True)
+
+        # encode the summaries
+        labels = self.tokenizer(problems, max_length=400, padding="max_length", truncation=True).input_ids
+
+        # important: we need to replace the index of the padding tokens by -100
+        # such that they are not taken into account by the CrossEntropyLoss
+        labels_with_ignore_index = []
+        for labels_example in labels:
+            labels_example = [label if label != 0 else -100 for label in labels_example]
+            labels_with_ignore_index.append(labels_example)
+
+        model_inputs["labels"] = labels_with_ignore_index
+
+        return model_inputs

@@ -100,36 +100,19 @@ def main():
 
     with accelerator.main_process_first():
         if train_dataset:
-            model_inputs = train_dataset["solutions.solution"].map(
-                tokenizer_class.tokenize_input_data,
+            model_inputs = train_dataset.map(
+                tokenizer_class.tokenize_data,
                 batched=True,
                 remove_columns=train_dataset.column_names,
                 return_tensors='pt'
             )
-            labels = train_dataset["problem"].map(
-                tokenizer_class.tokenize_target_data,
-                batched=True,
-                remove_columns=train_dataset.column_names,
-                return_tensors='pt'
-            )
-            labels = labels.input_ids
-            model_inputs["labels"] = labels
-
         if eval_dataset:
-            eval_model_inputs = eval_dataset["solutions.solution"].map(
-                tokenizer_class.tokenize_input_data,
+            eval_model_inputs = eval_dataset.map(
+                tokenizer_class.tokenize_data,
                 batched=True,
                 remove_columns=eval_dataset.column_names,
                 return_tensors='pt'
             )
-            eval_labels = eval_dataset["problem"].map(
-                tokenizer_class.tokenize_target_data,
-                batched=True,
-                remove_columns=eval_dataset.column_names,
-                return_tensors='pt'
-            )
-            eval_labels = eval_labels.input_ids
-            eval_model_inputs["labels"] = eval_labels
 
     output_dir = os.path.join(os.getcwd(), model_args.output_dir)
 
