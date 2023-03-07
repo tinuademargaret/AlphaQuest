@@ -4,13 +4,13 @@ import sys
 
 import torch
 import wandb
-from accelerate import Accelerator, DistributedType
+from accelerate import Accelerator
 from transformers import (
     AdamW,
     AutoConfig,
-    AutoModel,
-    AutoTokenizer,
-    DataCollatorForLanguageModeling,
+    T5ForConditionalGeneration,
+    T5Tokenizer,
+    DataCollatorForSeq2Seq,
     HfArgumentParser
 )
 from src.arguments import (
@@ -26,9 +26,6 @@ from src.model import AlphaQuestModel
 device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda")
-
-# Use tf32 precision
-torch.backends.cuda.matmul.allow_tf32 = True
 
 logger = logging.getLogger(__name__)
 
@@ -69,19 +66,19 @@ def main():
     )
 
     if model_args.tokenizer_name:
-        tokenizer = AutoTokenizer.from_pretrained(model_args.tokenizer_name)
+        tokenizer = T5Tokenizer.from_pretrained(model_args.tokenizer_name)
     elif model_args.model_name_or_path:
-        tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
+        tokenizer = T5Tokenizer.from_pretrained(model_args.model_name_or_path)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer_class = Tokenizer(tokenizer)
 
-    config = AutoConfig.from_pretrained(model_args.model_name_or_path)
-    model = AutoModel.from_pretrained(
+    # config = AutoConfig.from_pretrained(model_args.model_name_or_path)
+    model = T5ForConditionalGeneration.from_pretrained(
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
-            config=config
         )
-    model.resize_token_embeddings(len(tokenizer))
+    # model.resize_token_embeddings(len(tokenizer))
+    data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
     model = accelerator.prepare(model)
 
     if training_args.do_train:
@@ -104,28 +101,43 @@ def main():
 
     with accelerator.main_process_first():
         if train_dataset:
-            tokenized_train_data = train_dataset.map(
-                tokenizer_class.tokenize_train_data,
+            model_inputs = train_dataset["solutions.solution"].map(
+                tokenizer_class.tokenize_input_data,
                 batched=True,
                 remove_columns=train_dataset.column_names,
                 return_tensors='pt'
             )
+            labels = train_dataset["problem"].map(
+                tokenizer_class.tokenize_target_data,
+                batched=True,
+                remove_columns=train_dataset.column_names,
+                return_tensors='pt'
+            )
+            labels = labels.input_ids
+            model_inputs["labels"] = labels
+
         if eval_dataset:
-            tokenized_eval_data = eval_dataset.map(
-                tokenizer_class.tokenize_test_data,
+            eval_model_inputs = eval_dataset["solutions.solution"].map(
+                tokenizer_class.tokenize_input_data,
                 batched=True,
                 remove_columns=eval_dataset.column_names,
                 return_tensors='pt'
             )
-
-    data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
+            eval_labels = eval_dataset["problem"].map(
+                tokenizer_class.tokenize_target_data,
+                batched=True,
+                remove_columns=eval_dataset.column_names,
+                return_tensors='pt'
+            )
+            eval_labels = eval_labels.input_ids
+            eval_model_inputs["labels"] = eval_labels
 
     output_dir = os.path.join(os.getcwd(), model_args.output_dir)
 
     optimizer = AdamW(model.parameters(), lr=learning_rate)
 
-    alpha_quest_model = AlphaQuestModel(tokenized_train_data,
-                                        tokenized_eval_data,
+    alpha_quest_model = AlphaQuestModel(model_inputs,
+                                        eval_model_inputs,
                                         model,
                                         output_dir,
                                         device,

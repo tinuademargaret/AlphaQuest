@@ -81,16 +81,20 @@ def post_process(predictions, labels, tokenizer):
 class Tokenizer:
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
+        self.task_prefix = "generate problem: "
 
-    def tokenize_train_data(self, example):
+    def tokenize_input_data(self, example):
         return self.tokenizer(
-            example["input_text"],
+            self.task_prefix + example,
+            padding="longest",
+            max_length=500,
             truncation=True
         )
 
-    def tokenize_test_data(self, example):
+    def tokenize_target_data(self, example):
         return self.tokenizer(
-            example["input_text"],
-            text_target=example['target'],
+            example["problem"],
+            padding="longest",
+            max_length=400,
             truncation=True
         )
