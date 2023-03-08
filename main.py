@@ -61,7 +61,8 @@ def main():
     }
     run = wandb.init(
         project="AlphaQuest",
-        config=wandb_config
+        config=wandb_config,
+        group="FSDP"
     )
 
     if model_args.tokenizer_name:
