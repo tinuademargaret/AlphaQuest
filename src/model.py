@@ -26,9 +26,11 @@ class AlphaQuestModel:
                  eval_batch_size,
                  data_collator
                  ):
-        self.train_dataloader = DataLoader(
-            train_dataset, shuffle=True, batch_size=train_batch_size, collate_fn=data_collator)
-        self.eval_dataloader = DataLoader(eval_dataset, batch_size=eval_batch_size, collate_fn=data_collator)
+        if train_dataset:
+            self.train_dataloader = DataLoader(
+                train_dataset, shuffle=True, batch_size=train_batch_size, collate_fn=data_collator)
+        if eval_dataset:
+            self.eval_dataloader = DataLoader(eval_dataset, batch_size=eval_batch_size, collate_fn=data_collator)
         self.model = model
         self.output_dir = output_dir
         self.device = device
