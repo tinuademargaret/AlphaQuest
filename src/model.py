@@ -169,4 +169,4 @@ class AlphaQuestModel:
                 self.output_dir, "problems.txt"), "w") as f:
             for i, problem in enumerate(problems):
                 f.write("{}: {}".format(i, self.tokenizer.decode(
-                    problem, skip_special_tokens=True)))
+                    problem[0], skip_special_tokens=True)))
