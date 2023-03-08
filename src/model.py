@@ -118,7 +118,7 @@ class AlphaQuestModel:
             accelerator.wait_for_everyone()
             model = accelerator.unwrap_model(self.model)
             state_dict = model.state_dict()
-            accelerator.save_state(
+            accelerator.save(
                 state_dict,
                 output_file
             )
