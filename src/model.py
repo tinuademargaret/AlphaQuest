@@ -114,13 +114,13 @@ class AlphaQuestModel:
             val_metrics = {"val_loss": torch.mean(losses)}
             wandb_run.log({**metrics, **val_metrics})
 
-            output_file = f"epoch_{epoch}.pkl"
+            output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
             accelerator.wait_for_everyone()
             model = accelerator.unwrap_model(self.model)
             state_dict = model.state_dict()
             accelerator.save_state(
                 state_dict,
-                os.path.join(self.output_dir, output_file)
+                output_file
             )
         accelerator.wait_for_everyone()
         self.model = accelerator.unwrap_model(self.model)
