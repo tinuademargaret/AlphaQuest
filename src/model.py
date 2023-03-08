@@ -123,7 +123,7 @@ class AlphaQuestModel:
         bleu_score = evaluate.load("sacrebleu")
         rouge_score = evaluate.load("rouge")
         self.model.load_state_dict(torch.load(
-            os.path.join(self.output_dir, "alpha_quest.pt")))
+            os.path.join(self.output_dir, "epoch_0")))
         self.model.eval()
 
         with torch.no_grad():
@@ -131,7 +131,7 @@ class AlphaQuestModel:
                 generated_tokens = self.model.generate(
                     batch["input_ids"].to(self.device),
                     attention_mask=batch["attention_mask"].to(self.device),
-                    max_length=400,
+                    max_length=500,
                 )
                 labels = batch["labels"]
 
@@ -148,7 +148,7 @@ class AlphaQuestModel:
 
     def generate_problems(self):
         self.model.load_state_dict(torch.load(
-            os.path.join(self.output_dir, "alpha_quest.pt")))
+            os.path.join(self.output_dir, "epoch_0")))
         self.model.eval()
 
         problems = []
@@ -156,7 +156,7 @@ class AlphaQuestModel:
             batch_problem = self.model.generate(batch["input_ids"].to(self.device),
                                                 attention_mask=batch[
                                                     "attention_mask"].to(self.device),
-                                                max_length=450
+                                                max_length=400
                                                 )
             problems.append(batch_problem)
         with open(os.path.join(
