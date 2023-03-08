@@ -81,6 +81,7 @@ class TrainingArguments:
         }
     )
     epochs: Optional[int] = field(default=10, metadata={"help": "Total number of training epochs to perform."})
+    eval_epoch: Optional[int] = field(default=10, metadata={"help": "Epoch model to use for evaluation."})
     per_device_train_batch_size: Optional[int] = field(
         default=8,
         metadata={"help": "Batch size (per device) for the training dataloader."}

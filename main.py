@@ -128,6 +128,7 @@ def main():
                                         tokenizer,
                                         train_batch_size,
                                         eval_batch_size,
+                                        training_args.eval_epoch,
                                         data_collator
                                         )
     if training_args.do_train:

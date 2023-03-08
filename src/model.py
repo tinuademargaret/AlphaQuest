@@ -24,6 +24,7 @@ class AlphaQuestModel:
                  tokenizer,
                  train_batch_size,
                  eval_batch_size,
+                 eval_epoch,
                  data_collator
                  ):
         if train_dataset:
@@ -37,6 +38,7 @@ class AlphaQuestModel:
         self.tokenizer = tokenizer
         self.train_batch_size = train_batch_size
         self.eval_batch_size = eval_batch_size
+        self.eval_epoch = eval_epoch
 
     def train(self,
               num_epochs,
@@ -112,8 +114,12 @@ class AlphaQuestModel:
             val_metrics = {"val_loss": torch.mean(losses)}
             wandb_run.log({**metrics, **val_metrics})
 
-            output_file = f"epoch_{epoch}"
+            output_file = f"epoch_{epoch}.pkl"
+            accelerator.wait_for_everyone()
+            model = accelerator.unwrap_model(self.model)
+            state_dict = model.state_dict()
             accelerator.save_state(
+                state_dict,
                 os.path.join(self.output_dir, output_file)
             )
         accelerator.wait_for_everyone()
@@ -123,7 +129,7 @@ class AlphaQuestModel:
         bleu_score = evaluate.load("sacrebleu")
         rouge_score = evaluate.load("rouge")
         self.model.load_state_dict(torch.load(
-            os.path.join(self.output_dir, "epoch_0")))
+            os.path.join(self.output_dir, f"epoch_{self.eval_epoch}.pkl")))
         self.model.eval()
 
         with torch.no_grad():
@@ -148,7 +154,7 @@ class AlphaQuestModel:
 
     def generate_problems(self):
         self.model.load_state_dict(torch.load(
-            os.path.join(self.output_dir, "epoch_0")))
+            os.path.join(self.output_dir, f"epoch_{self.eval_epoch}.pkl")))
         self.model.eval()
 
         problems = []
