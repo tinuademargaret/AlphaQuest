@@ -99,6 +99,7 @@ def main():
     else:
         eval_dataset = None
 
+    model_inputs = eval_model_inputs = None
     with accelerator.main_process_first():
         if train_dataset:
             model_inputs = train_dataset.map(
