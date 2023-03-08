@@ -7,7 +7,7 @@ import wandb
 from accelerate import Accelerator
 from transformers import (
     AdamW,
-    T5ForConditionalGeneration,
+    LongT5ForConditionalGeneration,
     AutoTokenizer,
     DataCollatorForSeq2Seq,
     HfArgumentParser
@@ -73,7 +73,7 @@ def main():
     tokenizer_class = Tokenizer(tokenizer)
 
     # config = AutoConfig.from_pretrained(model_args.model_name_or_path)
-    model = T5ForConditionalGeneration.from_pretrained(
+    model = LongT5ForConditionalGeneration.from_pretrained(
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
         )

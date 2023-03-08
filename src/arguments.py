@@ -10,6 +10,7 @@ class ModelArguments:
     Arguments pertaining to model
     """
     model_name_or_path: str = field(
+        default="Stancld/longt5-tglobal-large-16384-pubmed-3k_steps",
         metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
     )
     config_name: Optional[str] = field(
