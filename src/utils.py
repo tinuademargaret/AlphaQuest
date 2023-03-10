@@ -87,7 +87,7 @@ class Tokenizer:
         solutions = examples['solutions.solution']
         problems = examples['problem']
 
-        inputs = [self.prefix + solution for solution in solutions]
+        inputs = [solution for solution in solutions]
         model_inputs = self.tokenizer(inputs, padding="max_length", truncation=True)
 
         # encode the summaries
