@@ -62,7 +62,7 @@ def main():
     run = wandb.init(
         project="AlphaQuest",
         config=wandb_config,
-        group="FSDP"
+        group="FSDP_T5"
     )
 
     if model_args.tokenizer_name:
@@ -145,10 +145,10 @@ def main():
         print(f"BLEU score: {scores[0]['score']:.2f}")
         print(f"ROUGE score: {scores[1]}")
 
-    if training_args.do_predict:
+    if training_args.do_prediction:
         alpha_quest_model.generate_problems()
 
-    trained_model_artifact = run.Artifact("alpha_quest", type="model")
+    trained_model_artifact = wandb.Artifact("alpha_quest", type="model")
     trained_model_artifact.add_dir(output_dir)
     run.log_artifact(trained_model_artifact)
 
