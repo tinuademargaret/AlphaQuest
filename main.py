@@ -7,7 +7,7 @@ import wandb
 from accelerate import Accelerator
 from transformers import (
     AdamW,
-    LongT5ForConditionalGeneration,
+    LEDForConditionalGeneration,
     AutoTokenizer,
     DataCollatorForSeq2Seq,
     HfArgumentParser
@@ -62,7 +62,7 @@ def main():
     run = wandb.init(
         project="AlphaQuest",
         config=wandb_config,
-        group="FSDP"
+        group="FSDP-LED-base"
     )
 
     if model_args.tokenizer_name:
@@ -73,7 +73,7 @@ def main():
     tokenizer_class = Tokenizer(tokenizer)
 
     # config = AutoConfig.from_pretrained(model_args.model_name_or_path)
-    model = LongT5ForConditionalGeneration.from_pretrained(
+    model = LEDForConditionalGeneration.from_pretrained(
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
         )
@@ -145,7 +145,7 @@ def main():
         print(f"BLEU score: {scores[0]['score']:.2f}")
         print(f"ROUGE score: {scores[1]}")
 
-    if training_args.do_predict:
+    if training_args.do_prediction:
         alpha_quest_model.generate_problems()
 
     trained_model_artifact = wandb.Artifact("alpha_quest", type="model")
