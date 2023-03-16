@@ -28,6 +28,9 @@ class TrainingArguments:
     """
     Arguments pertaining to training
     """
+    group_name: str = field(
+        metadata={"help": "Name of the group to group the runs on wandb"}
+    )
     do_train: bool = field(
         default=True,
         metadata={"help": "Wether model should be trained or not"}
