@@ -137,7 +137,7 @@ class AlphaQuestModel:
                 generated_tokens = self.model.generate(
                     batch["input_ids"].to(self.device),
                     attention_mask=batch["attention_mask"].to(self.device),
-                    max_length=100,
+                    max_length=200,
                 )
                 labels = batch["labels"]
 
