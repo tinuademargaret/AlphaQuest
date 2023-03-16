@@ -141,12 +141,12 @@ def main():
                                 accelerator
                                 )
     if training_args.do_eval:
-        scores = alpha_quest_model.eval()
+        scores = alpha_quest_model.eval(training_args.do_train)
         print(f"BLEU score: {scores[0]['score']:.2f}")
         print(f"ROUGE score: {scores[1]}")
 
     if training_args.do_prediction:
-        alpha_quest_model.generate_problems()
+        alpha_quest_model.generate_problems(training_args.do_train)
 
     trained_model_artifact = wandb.Artifact("alpha_quest", type="model")
     trained_model_artifact.add_dir(output_dir)

@@ -125,13 +125,13 @@ class AlphaQuestModel:
         accelerator.wait_for_everyone()
         self.model = accelerator.unwrap_model(self.model)
 
-    def eval(self):
+    def eval(self, not_load=True):
         bleu_score = evaluate.load("sacrebleu")
         rouge_score = evaluate.load("rouge")
-        self.model.load_state_dict(torch.load(
-            os.path.join(self.output_dir, f"epoch_{self.eval_epoch}.pkl")))
-        self.model.eval()
-
+        if not not_load:
+            self.model.load_state_dict(torch.load(
+                os.path.join(self.output_dir, f"epoch_{self.eval_epoch}.pkl")))
+            self.model.eval()
         with torch.no_grad():
             for batch in tqdm(self.eval_dataloader):
                 generated_tokens = self.model.generate(
@@ -152,17 +152,19 @@ class AlphaQuestModel:
             rouge_results = rouge_score.compute()
             return bleu_results, rouge_results
 
-    def generate_problems(self):
-        self.model.load_state_dict(torch.load(
-            os.path.join(self.output_dir, f"epoch_{self.eval_epoch}.pkl")))
-        self.model.eval()
+    def generate_problems(self, not_load=True):
+        # only load if model is not trained
+        if not not_load:
+            self.model.load_state_dict(torch.load(
+                os.path.join(self.output_dir, f"epoch_{self.eval_epoch}.pkl")))
+            self.model.eval()
 
         problems = []
         for batch in self.eval_dataloader:
             batch_problem = self.model.generate(batch["input_ids"].to(self.device),
                                                 attention_mask=batch[
                                                     "attention_mask"].to(self.device),
-                                                max_length=100
+                                                max_length=200
                                                 )
             problems.append(batch_problem)
         with open(os.path.join(
