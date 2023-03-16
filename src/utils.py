@@ -88,10 +88,10 @@ class Tokenizer:
         problems = examples['problem']
 
         inputs = [self.prefix + solution for solution in solutions]
-        model_inputs = self.tokenizer(inputs, max_length=500, padding="max_length", truncation=True)
+        model_inputs = self.tokenizer(inputs, truncation=True)
 
         # encode the summaries
-        labels = self.tokenizer(problems, max_length=400, padding="max_length", truncation=True).input_ids
+        labels = self.tokenizer(problems, truncation=True).input_ids
 
         # important: we need to replace the index of the padding tokens by -100
         # such that they are not taken into account by the CrossEntropyLoss

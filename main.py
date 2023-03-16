@@ -77,7 +77,7 @@ def main():
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
         )
-    # model.resize_token_embeddings(len(tokenizer))
+    model.resize_token_embeddings(len(tokenizer))
     data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
     model = accelerator.prepare(model)
 
