@@ -102,6 +102,7 @@ class AlphaQuestModel:
 
             self.model.eval()
             losses = []
+            prev_loss = 0
             for step, batch in enumerate(self.eval_dataloader):
                 with torch.no_grad():
                     val_outputs = self.model(**batch)
@@ -110,18 +111,21 @@ class AlphaQuestModel:
 
             losses = torch.cat(losses)
             losses = losses[: len(self.eval_dataloader)]
+            val_loss = torch.mean(losses)
 
-            val_metrics = {"val_loss": torch.mean(losses)}
+            val_metrics = {"val_loss": val_loss}
             wandb_run.log({**metrics, **val_metrics})
 
-            output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
-            accelerator.wait_for_everyone()
-            model = accelerator.unwrap_model(self.model)
-            state_dict = model.state_dict()
-            accelerator.save(
-                state_dict,
-                output_file
-            )
+            if prev_loss < val_loss or epoch == num_epochs-1:
+
+                output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
+                accelerator.wait_for_everyone()
+                model = accelerator.unwrap_model(self.model)
+                state_dict = model.state_dict()
+                accelerator.save(
+                    state_dict,
+                    output_file
+                )
         accelerator.wait_for_everyone()
         self.model = accelerator.unwrap_model(self.model)
 
