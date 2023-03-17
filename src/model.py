@@ -92,7 +92,7 @@ class AlphaQuestModel:
                     progress_bar.update(1)
                     completed_steps += 1
 
-                    metrics = {"train_loss": train_loss}
+                    metrics = {"train_loss": train_loss, "epoch": epoch}
 
                     if step % log_interval == 0:
                         wandb_run.log(metrics)
@@ -113,7 +113,7 @@ class AlphaQuestModel:
             losses = losses[: len(self.eval_dataloader)]
             val_loss = torch.mean(losses)
 
-            val_metrics = {"val_loss": val_loss}
+            val_metrics = {"val_loss": val_loss, "epoch": epoch}
             wandb_run.log({**metrics, **val_metrics})
 
             # Only save when the val_loss starts increasing
