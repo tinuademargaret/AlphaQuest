@@ -90,7 +90,7 @@ def main():
     else:
         train_dataset = None
 
-    if training_args.do_eval:
+    if training_args.do_eval or training_args.do_train or training_args.do_prediction:
         eval_dataset = load_artifact_dataset(wandb_run=run,
                                              artifact=training_args.data_name,
                                              version=training_args.data_version,
