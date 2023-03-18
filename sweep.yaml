@@ -1,5 +1,5 @@
 program: main.py
-method: grid
+method: random
 project: AlphaQuest
 metric:
   name: val_loss
