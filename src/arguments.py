@@ -43,6 +43,10 @@ class TrainingArguments:
         default=True,
         metadata={"help": "Wether model should predict or not"}
     )
+    do_sweep: bool = field(
+        default=True,
+        metadata={"help": "Perform wandb sweep "}
+    )
     data_dir: str = field(
         default="train_valid_data",
         metadata={"help": "The input data artifact dir"},
@@ -86,11 +90,11 @@ class TrainingArguments:
     epochs: Optional[int] = field(default=10, metadata={"help": "Total number of training epochs to perform."})
     eval_epoch: Optional[int] = field(default=10, metadata={"help": "Epoch model to use for evaluation."})
     per_device_train_batch_size: Optional[int] = field(
-        default=8,
+        default=2,
         metadata={"help": "Batch size (per device) for the training dataloader."}
     )
     per_device_eval_batch_size: Optional[int] = field(
-        default=4,
+        default=1,
         metadata={"help": "Batch size (per device) for the eval dataloader."}
     )
     n_train: Optional[int] = field(default=-1, metadata={"help": "# training examples. -1 means use all."})

@@ -1,7 +1,3 @@
-from collections import namedtuple
-
-import yaml
-
 import numpy as np
 from datasets import load_dataset, load_from_disk
 
@@ -81,7 +77,7 @@ def post_process(predictions, labels, tokenizer):
 class Tokenizer:
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
-        self.prefix = "generate problem: "
+        self.prefix = "Generate problem: "
 
     def tokenize_data(self, examples):
         solutions = examples['solutions.solution']
@@ -90,7 +86,7 @@ class Tokenizer:
         inputs = [self.prefix + solution for solution in solutions]
         model_inputs = self.tokenizer(inputs, truncation=True)
 
-        # encode the summaries
+        # encode the problems
         labels = self.tokenizer(problems, truncation=True).input_ids
 
         # important: we need to replace the index of the padding tokens by -100

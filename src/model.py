@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from transformers import get_scheduler
 
 from src.utils import (
-    post_process,
+    post_process
 )
 
 
@@ -67,7 +67,8 @@ class AlphaQuestModel:
         )
 
         progress_bar = tqdm(
-            range(int(max_train_steps / accelerator.num_processes)), disable=not accelerator.is_local_main_process
+            range(int(max_train_steps / accelerator.num_processes)),
+            disable=not accelerator.is_local_main_process
         )
         completed_steps = 0
 
@@ -76,7 +77,7 @@ class AlphaQuestModel:
 
         if not os.path.exists(self.output_dir):
             os.mkdir(self.output_dir)
-
+        prev_loss = 10000
         for epoch in range(num_epochs):
             for step, batch in enumerate(self.train_dataloader):
                 outputs = self.model(**batch)
@@ -101,23 +102,33 @@ class AlphaQuestModel:
                     break
 
             self.model.eval()
+            bleu_score = evaluate.load("sacrebleu")
             losses = []
-            prev_loss = math.inf
             for step, batch in enumerate(self.eval_dataloader):
                 with torch.no_grad():
                     val_outputs = self.model(**batch)
+                    generated_tokens = self.model.generate(batch["input_ids"],
+                                                           attention_masks=batch["attention_masks"],
+                                                           max_length=200
+                                                           )
+                labels = batch["labels"]
                 val_loss = val_outputs.loss
                 losses.append(accelerator.gather(val_loss.repeat(self.eval_batch_size)))
+                decoded_preds, decoded_labels = post_process(
+                    generated_tokens, labels, self.tokenizer)
+                bleu_score.add_batch(
+                    predictions=decoded_preds, references=decoded_labels)
 
             losses = torch.cat(losses)
             losses = losses[: len(self.eval_dataloader)]
             val_loss = torch.mean(losses)
+            bleu = bleu_score.compute()['score']
 
-            val_metrics = {"val_loss": val_loss, "epoch": epoch}
+            val_metrics = {"val_loss": val_loss, "bleu": bleu, "epoch": epoch}
             wandb_run.log({**metrics, **val_metrics})
 
             # Only save when the val_loss starts increasing
-            if prev_loss < val_loss or epoch == num_epochs-1:
+            if abs(prev_loss - val_loss) <= 0.01 or epoch == num_epochs - 1:
                 output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
                 accelerator.wait_for_everyone()
                 model = accelerator.unwrap_model(self.model)

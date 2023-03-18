@@ -60,7 +60,7 @@ def main():
         "epochs": num_epochs
     }
     run = wandb.init(
-        project="AlphaQuest",
+        project="AlphaQuestSweep",
         config=wandb_config,
         group=training_args.group_name
     )
@@ -81,7 +81,7 @@ def main():
     data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
     model = accelerator.prepare(model)
 
-    if training_args.do_train:
+    if training_args.do_train or training_args.do_sweep:
         train_dataset = load_artifact_dataset(wandb_run=run,
                                               artifact=training_args.data_name,
                                               version=training_args.data_version,
@@ -90,7 +90,8 @@ def main():
     else:
         train_dataset = None
 
-    if training_args.do_eval or training_args.do_train or training_args.do_prediction:
+    if training_args.do_eval or training_args.do_train \
+            or training_args.do_prediction or training_args.do_sweep:
         eval_dataset = load_artifact_dataset(wandb_run=run,
                                              artifact=training_args.data_name,
                                              version=training_args.data_version,
@@ -131,7 +132,7 @@ def main():
                                         training_args.eval_epoch,
                                         data_collator
                                         )
-    if training_args.do_train:
+    if training_args.do_train or training_args.do_sweep:
         alpha_quest_model.train(num_epochs,
                                 optimizer,
                                 run,
@@ -140,6 +141,7 @@ def main():
                                 log_interval,
                                 accelerator
                                 )
+
     if training_args.do_eval:
         scores = alpha_quest_model.eval(training_args.do_train)
         print(f"BLEU score: {scores[0]['score']:.2f}")
