@@ -29,18 +29,19 @@ class TrainingArguments:
     Arguments pertaining to training
     """
     group_name: str = field(
+        default="t5-sweep",
         metadata={"help": "Name of the group to group the runs on wandb"}
     )
     do_train: bool = field(
-        default=True,
+        default=False,
         metadata={"help": "Wether model should be trained or not"}
     )
     do_eval: bool = field(
-        default=True,
+        default=False,
         metadata={"help": "Wether model should be evaluated or not"}
     )
     do_prediction: bool = field(
-        default=True,
+        default=False,
         metadata={"help": "Wether model should predict or not"}
     )
     do_sweep: bool = field(
@@ -52,7 +53,7 @@ class TrainingArguments:
         metadata={"help": "The input data artifact dir"},
     )
     data_version: str = field(
-        default="v3",
+        default="v5",
         metadata={"help": "The version of input data artifact"},
     )
     data_name: str = field(
