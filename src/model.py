@@ -128,15 +128,15 @@ class AlphaQuestModel:
             wandb_run.log({**metrics, **val_metrics})
 
             # Only save when the val_loss starts increasing
-            if abs(prev_loss - val_loss) <= 0.01 or epoch == num_epochs - 1:
-                output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
-                accelerator.wait_for_everyone()
-                model = accelerator.unwrap_model(self.model)
-                state_dict = model.state_dict()
-                accelerator.save(
-                    state_dict,
-                    output_file
-                )
+            # if abs(prev_loss - val_loss) <= 0.01 or epoch == num_epochs - 1:
+            #     output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
+            #     accelerator.wait_for_everyone()
+            #     model = accelerator.unwrap_model(self.model)
+            #     state_dict = model.state_dict()
+            #     accelerator.save(
+            #         state_dict,
+            #         output_file
+            #     )
             prev_loss = val_loss
         accelerator.wait_for_everyone()
         self.model = accelerator.unwrap_model(self.model)

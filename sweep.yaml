@@ -1,6 +1,6 @@
 program: main.py
 method: random
-project: AlphaQuest
+project: t5_sweeps
 metric:
   name: val_loss
   goal: minimize

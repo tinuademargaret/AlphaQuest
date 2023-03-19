@@ -150,9 +150,9 @@ def main():
     if training_args.do_prediction:
         alpha_quest_model.generate_problems(training_args.do_train)
 
-    trained_model_artifact = wandb.Artifact("alpha_quest", type="model")
-    trained_model_artifact.add_dir(output_dir)
-    run.log_artifact(trained_model_artifact)
+    # trained_model_artifact = wandb.Artifact("alpha_quest", type="model")
+    # trained_model_artifact.add_dir(output_dir)
+    # run.log_artifact(trained_model_artifact)
 
     run.finish()
 
