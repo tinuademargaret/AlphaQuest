@@ -46,7 +46,7 @@ def load_artifact_dataset(wandb_run,
                           version="v0",
                           dir_name='processed_data',
                           split=None):
-    dataset_artifact = wandb_run.use_artifact(f"{artifact}:{version}")
+    dataset_artifact = wandb_run.use_artifact(f"AlphaQuest/{artifact}:{version}")
     dataset_artifact.download()
     if split:
         dataset = load_from_disk(f'artifacts/{artifact}:{version}/{dir_name}/{split}')
