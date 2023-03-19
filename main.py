@@ -61,8 +61,7 @@ def main():
     }
     run = wandb.init(
         project="t5_sweeps",
-        config=wandb_config,
-        group=training_args.group_name
+        config=wandb_config
     )
 
     if model_args.tokenizer_name:
