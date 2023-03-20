@@ -180,11 +180,13 @@ class AlphaQuestModel:
             batch_problem = self.model.generate(batch["input_ids"].to(self.device),
                                                 attention_mask=batch[
                                                     "attention_mask"].to(self.device),
-                                                max_length=200
+                                                do_sample=True,
+                                                max_new_tokens=150,
+                                                num_return_sequences=10
                                                 )
             problems.append(batch_problem)
         with open(os.path.join(
                 self.output_dir, "problems.txt"), "w") as f:
             for i, problem in enumerate(problems):
-                f.write("{}: {}".format(i, self.tokenizer.decode(
+                f.write("{}: {}\n".format(i, self.tokenizer.decode(
                     problem[0], skip_special_tokens=True)))
