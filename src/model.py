@@ -108,8 +108,8 @@ class AlphaQuestModel:
                 with torch.no_grad():
                     val_outputs = self.model(**batch)
                     generated_tokens = self.model.generate(batch["input_ids"],
-                                                           attention_masks=batch["attention_masks"],
-                                                           max_length=200
+                                                           attention_mask=batch["attention_mask"],
+                                                           max_new_tokens=200
                                                            )
                 labels = batch["labels"]
                 val_loss = val_outputs.loss
