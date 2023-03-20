@@ -176,7 +176,10 @@ class AlphaQuestModel:
             self.model.eval()
 
         problems = []
+        count = 0
         for batch in self.eval_dataloader:
+            if count > 10:
+                break
             batch_problem = self.model.generate(batch["input_ids"].to(self.device),
                                                 attention_mask=batch[
                                                     "attention_mask"].to(self.device),
@@ -185,6 +188,7 @@ class AlphaQuestModel:
                                                 num_return_sequences=10
                                                 )
             problems.append(batch_problem)
+            count += 1
         with open(os.path.join(
                 self.output_dir, "problems.txt"), "w") as f:
             for i, problem in enumerate(problems):
