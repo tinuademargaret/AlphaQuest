@@ -48,7 +48,7 @@ class AlphaQuestModel:
               gradient_accumulation_steps,
               log_interval,
               accelerator,
-              num_warmup_steps=1000
+              num_warmup_steps=100
               ):
         """
 
@@ -131,6 +131,7 @@ class AlphaQuestModel:
             if abs(prev_loss - val_loss) <= 0.01 or epoch == num_epochs - 1:
                 output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
                 accelerator.wait_for_everyone()
+                print(f"Saving epoch {epoch}")
                 model = accelerator.unwrap_model(self.model)
                 state_dict = model.state_dict()
                 accelerator.save(

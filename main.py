@@ -60,7 +60,7 @@ def main():
         "epochs": num_epochs
     }
     run = wandb.init(
-        project="AlphaQuestSweep",
+        project="AlphaQuest",
         config=wandb_config,
         group=training_args.group_name
     )
