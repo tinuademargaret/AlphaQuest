@@ -128,7 +128,7 @@ class AlphaQuestModel:
             wandb_run.log({**metrics, **val_metrics})
 
             # Only save when the val_loss starts increasing
-            if abs(prev_loss - val_loss) <= 0.01 or epoch == num_epochs - 1:
+            if abs(prev_loss - val_loss) <= 0.08 or epoch == num_epochs - 1:
                 output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
                 accelerator.wait_for_everyone()
                 print(f"Saving epoch {epoch}")
@@ -176,7 +176,7 @@ class AlphaQuestModel:
                 os.path.join(self.output_dir, f"epoch_{self.eval_epoch}.pkl")))
             self.model.eval()
 
-        problems = []
+        problem_list = []
         count = 0
         for batch in self.eval_dataloader:
             if count > 10:
@@ -188,10 +188,11 @@ class AlphaQuestModel:
                                                 max_new_tokens=150,
                                                 num_return_sequences=10
                                                 )
-            problems.append(batch_problem)
+            problem_list.append(batch_problem)
             count += 1
         with open(os.path.join(
                 self.output_dir, "problems.txt"), "w") as f:
-            for i, problem in enumerate(problems):
-                f.write("{}: {}\n".format(i, self.tokenizer.decode(
-                    problem[0], skip_special_tokens=True)))
+            for i, problems in enumerate(problem_list):
+                for j, problem in enumerate(problems):
+                    f.write("{}_{}: {}\n".format(i, j, self.tokenizer.decode(
+                        problem, skip_special_tokens=True)))
