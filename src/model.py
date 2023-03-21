@@ -48,7 +48,7 @@ class AlphaQuestModel:
               gradient_accumulation_steps,
               log_interval,
               accelerator,
-              num_warmup_steps=100
+              num_warmup_steps=0
               ):
         """
 
@@ -129,7 +129,7 @@ class AlphaQuestModel:
 
             # Only save when the val_loss starts increasing
             loss_diff = prev_loss-val_loss
-            if 0 < loss_diff <= 0.08 or epoch == num_epochs - 1:
+            if 0 < loss_diff <= 0.09 or epoch == num_epochs - 1:
                 output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
                 accelerator.wait_for_everyone()
                 print(f"Saving epoch {epoch}")
