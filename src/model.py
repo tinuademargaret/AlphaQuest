@@ -128,7 +128,8 @@ class AlphaQuestModel:
             wandb_run.log({**metrics, **val_metrics})
 
             # Only save when the val_loss starts increasing
-            if abs(prev_loss - val_loss) <= 0.08 or epoch == num_epochs - 1:
+            loss_diff = prev_loss-val_loss
+            if 0 < loss_diff <= 0.08 or epoch == num_epochs - 1:
                 output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
                 accelerator.wait_for_everyone()
                 print(f"Saving epoch {epoch}")
@@ -184,9 +185,7 @@ class AlphaQuestModel:
             batch_problem = self.model.generate(batch["input_ids"].to(self.device),
                                                 attention_mask=batch[
                                                     "attention_mask"].to(self.device),
-                                                do_sample=True,
                                                 max_new_tokens=150,
-                                                num_return_sequences=10
                                                 )
             problem_list.append(batch_problem)
             count += 1
