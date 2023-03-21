@@ -20,7 +20,7 @@ class ModelArguments:
     )
     output_dir: str = field(
         default="output", metadata={"help": "Where to store model outputs"}
-    ),
+    )
     do_upload: bool = field(
         default=True, metadata={"help": "Whether model should be uploaded to wandb"}
     )
