@@ -48,7 +48,7 @@ class AlphaQuestModel:
               gradient_accumulation_steps,
               log_interval,
               accelerator,
-              num_warmup_steps=0
+              num_warmup_steps=100
               ):
         """
 
