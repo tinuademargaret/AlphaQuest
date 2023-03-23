@@ -1,0 +1,22 @@
+program: main.py
+method: random
+project: AlphaQuest
+metric:
+  name: val_loss
+  goal: minimize
+parameters:
+  epochs:
+    values: [10, 15]
+  learning_rate:
+    distribution: log_uniform_values
+    min: 3e-5
+    max: 3e-3
+  gradient_accumulation_steps:
+    values: [4, 8, 12, 16]
+  model_name_or_path:
+    values:
+      - 't5-base'
+      - 'Salesforce/codet5-base'
+early_terminate:
+  type: hyperband
+  min_iter: 2
