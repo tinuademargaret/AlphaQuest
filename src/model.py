@@ -73,13 +73,14 @@ class AlphaQuestModel:
         completed_steps = 0
 
         wandb_run.watch(self.model, log_freq=100)
-        self.model.train()
 
         if not os.path.exists(self.output_dir):
             os.mkdir(self.output_dir)
         prev_loss = 10000
         prev_bleu = 10000
         for epoch in range(num_epochs):
+
+            self.model.train()
             for step, batch in enumerate(self.train_dataloader):
                 outputs = self.model(**batch)
                 train_loss = outputs.loss
@@ -129,7 +130,7 @@ class AlphaQuestModel:
             wandb_run.log({**metrics, **val_metrics})
 
             # Only save when the val_loss starts increasing
-            loss_diff = prev_loss-val_loss
+            loss_diff = prev_loss - val_loss
             bleu_diff = prev_bleu - bleu
             if 0 < loss_diff <= 0.09 or 0 < bleu_diff < 0.6 or epoch == num_epochs - 1:
                 output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
