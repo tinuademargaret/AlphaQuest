@@ -1,10 +1,11 @@
 import os
 import logging
 import sys
+from datetime import timedelta
 
 import torch
 import wandb
-from accelerate import Accelerator
+from accelerate import Accelerator, InitProcessGroupKwargs
 from transformers import (
     AdamW,
     T5ForConditionalGeneration,
@@ -38,7 +39,9 @@ def main():
     else:
         model_args, training_args = parser.parse_args_into_dataclasses()
 
-    accelerator = Accelerator(gradient_accumulation_steps=training_args.gradient_accumulation_steps)
+    ipg_handler = InitProcessGroupKwargs(timeout=timedelta(seconds=5400))
+    accelerator = Accelerator(gradient_accumulation_steps=training_args.gradient_accumulation_steps,
+                              kwargs_handlers=[ipg_handler])
 
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
