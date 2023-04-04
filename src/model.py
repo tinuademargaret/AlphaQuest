@@ -77,7 +77,6 @@ class AlphaQuestModel:
         if not os.path.exists(self.output_dir):
             os.mkdir(self.output_dir)
         prev_loss = 10000
-        prev_bleu = 10000
         for epoch in range(num_epochs):
 
             self.model.train()
@@ -131,8 +130,7 @@ class AlphaQuestModel:
 
             # Only save when the val_loss starts increasing
             loss_diff = prev_loss - val_loss
-            bleu_diff = prev_bleu - bleu
-            if 0 < loss_diff <= 0.09 or 0 < bleu_diff < 0.6 or epoch == num_epochs - 1:
+            if 0 < loss_diff <= 0.09 or epoch == num_epochs - 1:
                 output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
                 accelerator.wait_for_everyone()
                 print(f"Saving epoch {epoch}")
@@ -143,7 +141,6 @@ class AlphaQuestModel:
                     output_file
                 )
             prev_loss = val_loss
-            prev_bleu = bleu
         accelerator.wait_for_everyone()
         self.model = accelerator.unwrap_model(self.model)
 
