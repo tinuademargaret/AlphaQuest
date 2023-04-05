@@ -78,8 +78,8 @@ class Tokenizer:
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
         self.prefix = "Generate problem: "
-        self.languages = {"0": "Unknown", "1": "Python2",
-                          "2": "C++", "3": "Python", "4": "Java"}
+        self.languages = {0: "Unknown", 1: "Python2",
+                          2: "C++", 3: "Python", 4: "Java"}
 
     def tokenize_data(self, examples):
         solutions = examples['solutions.solution']
