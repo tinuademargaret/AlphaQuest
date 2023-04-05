@@ -90,7 +90,7 @@ class Tokenizer:
         inputs = ["Language:" + self.languages[language] + "Tag: " + str(tag) + self.prefix + solution
                   for language, tag, solution in zip(languages, tags, solutions)]
 
-        model_inputs = self.tokenizer(inputs, truncation=True)
+        model_inputs = self.tokenizer(inputs, truncation=True, padding='max_length', max_length=500)
 
         # encode the problems
         labels = self.tokenizer(problems, truncation=True).input_ids
