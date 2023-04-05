@@ -78,12 +78,18 @@ class Tokenizer:
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
         self.prefix = "Generate problem: "
+        self.languages = {"0": "Unknown", "1": "Python2",
+                          "2": "C++", "3": "Python", "4": "Java"}
 
     def tokenize_data(self, examples):
         solutions = examples['solutions.solution']
         problems = examples['problem']
+        tags = examples['cf_tags']
+        languages = examples['solutions.language']
 
-        inputs = [self.prefix + solution for solution in solutions]
+        inputs = ["Language:" + self.languages[language] + "Tag: " + str(tag) + self.prefix + solution
+                  for language, tag, solution in zip(languages, tags, solutions)]
+
         model_inputs = self.tokenizer(inputs, truncation=True)
 
         # encode the problems
