@@ -90,10 +90,10 @@ class Tokenizer:
         inputs = ["Language:" + self.languages[language] + "Tag: " + str(tag) + self.prefix + solution
                   for language, tag, solution in zip(languages, tags, solutions)]
 
-        model_inputs = self.tokenizer(inputs, truncation=True, padding='max_length', max_length=500)
+        model_inputs = self.tokenizer(inputs, truncation=True, padding='max_length', max_length=300)
 
         # encode the problems
-        labels = self.tokenizer(problems, truncation=True).input_ids
+        labels = self.tokenizer(problems, truncation=True, padding='max_length', max_length=300).input_ids
 
         # important: we need to replace the index of the padding tokens by -100
         # such that they are not taken into account by the CrossEntropyLoss
