@@ -86,13 +86,17 @@ class Tokenizer:
         problems = examples['problem']
         tags = examples['cf_tags']
         languages = examples['solutions.language']
+        problem_input = examples['input']
+        problem_output = examples["output"]
 
+        # looping here so that tokenisation can be batched
         inputs = ["Language:" + self.languages[language] + "Tag: " + str(tag) + self.prefix + solution
                   for language, tag, solution in zip(languages, tags, solutions)]
 
         model_inputs = self.tokenizer(inputs, truncation=True, padding='max_length', max_length=500)
 
         # encode the problems
+        # T5forConditionalGeneration automatically prepares the decoder input from the labels
         labels = self.tokenizer(problems, truncation=True).input_ids
 
         # important: we need to replace the index of the padding tokens by -100
@@ -103,5 +107,34 @@ class Tokenizer:
             labels_with_ignore_index.append(labels_example)
 
         model_inputs["labels"] = labels_with_ignore_index
+
+        return model_inputs
+
+    languages = {0: "Unknown", 1: "Python2", 2: "C++", 3: "Python", 4: "Java"}
+
+    def tokenize_mlt_data(self, example):
+        solution = example['solutions.solution']
+        tag = example['cf_tags']
+        language = example['solutions.language']
+        tasks = {"Problem": example['problem'], "Input": example['input'], "Output": example["output"]}
+
+        model_inputs = {"input_ids": [], "attention_mask": [], "labels": []}
+
+        for task, task_output in tasks.items():
+            input_sequence = "Generate" + task + "\n" + "Language: " + self.languages[language] + "\n" + "Tag: " + str(
+                tag) + "\n" + "Solution: " + solution
+            tokenized_input_sequence = self.tokenizer(input_sequence, truncation=True, padding='max_length',
+                                                      max_length=512)
+
+            task_sequence = task + task_output
+            # using one context length since the padd tokens would be ignored, so we can have batch size
+            tokenized_task_sequence = self.tokenizer(task_sequence, truncation=True, padding='max_length',
+                                                     max_length=512).input_ids
+            # replace pad tokens for labels to -100
+            tokenized_task_sequence = [label if label != 0 else -100 for label in tokenized_task_sequence]
+
+            model_inputs["input_ids"].append(tokenized_input_sequence["input_ids"])
+            model_inputs["attention_mask"].append(tokenized_input_sequence["attention_mask"])
+            model_inputs["labels"].append(tokenized_task_sequence)
 
         return model_inputs
