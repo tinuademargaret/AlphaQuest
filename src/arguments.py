@@ -34,19 +34,24 @@ class TrainingArguments:
         metadata={"help": "Name of the group to group the runs on wandb"}
     )
     do_train: bool = field(
-        default=True,
+        default=False,
         metadata={"help": "Wether model should be trained or not"}
     )
+    do_cl_train: bool = field(
+        default=False,
+        metadata={"help": "Wether model should be trained using curriculum "
+                          "learning technique or not"}
+    )
     do_eval: bool = field(
-        default=True,
+        default=False,
         metadata={"help": "Wether model should be evaluated or not"}
     )
     do_prediction: bool = field(
-        default=True,
+        default=False,
         metadata={"help": "Wether model should predict or not"}
     )
     do_sweep: bool = field(
-        default=True,
+        default=False,
         metadata={"help": "Perform wandb sweep "}
     )
     data_dir: str = field(
@@ -102,6 +107,8 @@ class TrainingArguments:
     n_train: Optional[int] = field(default=-1, metadata={"help": "# training examples. -1 means use all."})
     n_val: Optional[int] = field(default=-1, metadata={"help": "# validation examples. -1 means use all."})
     log_interval: Optional[int] = field(default=100, metadata={"help": "wandb logging interval."})
+    num_shards: Optional[int] = field(default=4, metadata={"help": "no of splits for training data during"
+                                                                   "curriculum training"})
 
 
 

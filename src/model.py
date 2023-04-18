@@ -28,8 +28,7 @@ class AlphaQuestModel:
                  data_collator
                  ):
         if train_dataset:
-            self.train_dataloader = DataLoader(
-                train_dataset, shuffle=True, batch_size=train_batch_size, collate_fn=data_collator)
+            self.train_dataset = train_dataset
         if eval_dataset:
             self.eval_dataloader = DataLoader(eval_dataset, batch_size=eval_batch_size, collate_fn=data_collator)
         self.model = model
@@ -39,6 +38,7 @@ class AlphaQuestModel:
         self.train_batch_size = train_batch_size
         self.eval_batch_size = eval_batch_size
         self.eval_epoch = eval_epoch
+        self.data_collator = data_collator
 
     def train(self,
               num_epochs,
@@ -48,13 +48,18 @@ class AlphaQuestModel:
               gradient_accumulation_steps,
               log_interval,
               accelerator,
-              num_warmup_steps=100
+              num_warmup_steps=100,
+              train_data=None
               ):
         """
 
         :return:
         """
-        num_update_steps_per_epoch = math.ceil(len(self.train_dataloader) / gradient_accumulation_steps)
+
+        train_dataloader = DataLoader(
+            train_data, batch_size=self.train_batch_size, collate_fn=self.data_collator)
+
+        num_update_steps_per_epoch = math.ceil(len(train_dataloader) / gradient_accumulation_steps)
         max_train_steps = num_epochs * num_update_steps_per_epoch
         lr_scheduler = get_scheduler(
             schedule_type,
@@ -62,8 +67,8 @@ class AlphaQuestModel:
             num_warmup_steps=num_warmup_steps,
             num_training_steps=max_train_steps,
         )
-        optimizer, self.train_dataloader, self.eval_dataloader, lr_scheduler = accelerator.prepare(
-            optimizer, self.train_dataloader, self.eval_dataloader, lr_scheduler
+        optimizer, train_dataloader, self.eval_dataloader, lr_scheduler = accelerator.prepare(
+            optimizer, train_dataloader, self.eval_dataloader, lr_scheduler
         )
 
         progress_bar = tqdm(
@@ -77,17 +82,18 @@ class AlphaQuestModel:
         if not os.path.exists(self.output_dir):
             os.mkdir(self.output_dir)
         prev_loss = 10000
+
         for epoch in range(num_epochs):
 
             self.model.train()
-            for step, batch in enumerate(self.train_dataloader):
+            for step, batch in enumerate(train_dataloader):
                 outputs = self.model(**batch)
                 train_loss = outputs.loss
                 train_loss = train_loss / gradient_accumulation_steps
 
                 accelerator.backward(train_loss)
 
-                if step % gradient_accumulation_steps == 0 or step == len(self.train_dataloader) - 1:
+                if step % gradient_accumulation_steps == 0 or step == len(train_dataloader) - 1:
                     optimizer.step()
                     lr_scheduler.step()
                     optimizer.zero_grad()
@@ -143,6 +149,37 @@ class AlphaQuestModel:
             prev_loss = val_loss
         accelerator.wait_for_everyone()
         self.model = accelerator.unwrap_model(self.model)
+
+    def curriculum_training(self,
+                            num_epochs,
+                            optimizer,
+                            run,
+                            schedule_type,
+                            gradient_accumulation_steps,
+                            log_interval,
+                            accelerator,
+                            num_shards):
+        sharded_data = [self.train_dataset.shard(num_shards=num_shards, index=i, contiguous=True)
+                        for i in range(num_shards)]
+        for i in range(num_shards):
+            train_data = sharded_data[i]
+            self.train(num_epochs,
+                       optimizer,
+                       run,
+                       schedule_type,
+                       gradient_accumulation_steps,
+                       log_interval,
+                       accelerator,
+                       train_data=train_data)
+
+        self.train(num_epochs,
+                   optimizer,
+                   run,
+                   schedule_type,
+                   gradient_accumulation_steps,
+                   log_interval,
+                   accelerator,
+                   train_data=self.train_dataset)
 
     def eval(self, not_load=True):
         bleu_score = evaluate.load("sacrebleu")

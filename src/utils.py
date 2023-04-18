@@ -77,7 +77,7 @@ def post_process(predictions, labels, tokenizer):
 class Tokenizer:
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
-        self.prefix = "Generate problem: "
+        self.prefix = "Generate Problem: "
         self.languages = {0: "Unknown", 1: "Python2",
                           2: "C++", 3: "Python", 4: "Java"}
 
@@ -86,14 +86,12 @@ class Tokenizer:
         problems = examples['problem']
         tags = examples['cf_tags']
         languages = examples['solutions.language']
-        problem_input = examples['input']
-        problem_output = examples["output"]
 
         # looping here so that tokenisation can be batched
-        inputs = ["Language:" + self.languages[language] + "Tag: " + str(tag) + self.prefix + solution
+        inputs = [self.prefix + "\n" + "Language:" + self.languages[language] + "Tag: " + str(tag) + solution
                   for language, tag, solution in zip(languages, tags, solutions)]
 
-        model_inputs = self.tokenizer(inputs, truncation=True, padding='max_length', max_length=500)
+        model_inputs = self.tokenizer(inputs, truncation=True, padding='max_length', max_length=512)
 
         # encode the problems
         # T5forConditionalGeneration automatically prepares the decoder input from the labels
@@ -110,9 +108,7 @@ class Tokenizer:
 
         return model_inputs
 
-    languages = {0: "Unknown", 1: "Python2", 2: "C++", 3: "Python", 4: "Java"}
-
-    def tokenize_mlt_data(self, example):
+    def tokenize_mtl_data(self, example):
         solution = example['solutions.solution']
         tag = example['cf_tags']
         language = example['solutions.language']

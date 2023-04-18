@@ -77,9 +77,9 @@ def main():
 
     # config = AutoConfig.from_pretrained(model_args.model_name_or_path)
     model = T5ForConditionalGeneration.from_pretrained(
-            model_args.model_name_or_path,
-            from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        )
+        model_args.model_name_or_path,
+        from_tf=bool(".ckpt" in model_args.model_name_or_path),
+    )
     model.resize_token_embeddings(len(tokenizer))
     data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
     model = accelerator.prepare(model)
@@ -144,6 +144,17 @@ def main():
                                 log_interval,
                                 accelerator
                                 )
+
+    if training_args.do_cl_train:
+        alpha_quest_model.curriculum_training(num_epochs,
+                                              optimizer,
+                                              run,
+                                              schedule_type,
+                                              training_args.gradient_accumulation_steps,
+                                              log_interval,
+                                              accelerator,
+                                              training_args.num_shards
+                                              )
 
     if training_args.do_eval:
         scores = alpha_quest_model.eval(training_args.do_train)
