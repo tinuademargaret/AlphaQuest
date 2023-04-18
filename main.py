@@ -84,7 +84,7 @@ def main():
     data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
     model = accelerator.prepare(model)
 
-    if training_args.do_train or training_args.do_sweep:
+    if training_args.do_train or training_args.do_sweep or training_args.do_cl_train:
         train_dataset = load_artifact_dataset(wandb_run=run,
                                               artifact=training_args.data_name,
                                               version=training_args.data_version,
@@ -94,7 +94,7 @@ def main():
         train_dataset = None
 
     if training_args.do_eval or training_args.do_train \
-            or training_args.do_prediction or training_args.do_sweep:
+            or training_args.do_prediction or training_args.do_sweep or training_args.do_cl_train:
         eval_dataset = load_artifact_dataset(wandb_run=run,
                                              artifact=training_args.data_name,
                                              version=training_args.data_version,

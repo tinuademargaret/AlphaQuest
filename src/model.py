@@ -49,7 +49,8 @@ class AlphaQuestModel:
               log_interval,
               accelerator,
               num_warmup_steps=100,
-              train_data=None
+              train_data=None,
+              shard = 0
               ):
         """
 
@@ -137,7 +138,7 @@ class AlphaQuestModel:
             # Only save when the val_loss starts increasing
             loss_diff = prev_loss - val_loss
             if 0 < loss_diff <= 0.09 or epoch == num_epochs - 1:
-                output_file = os.path.join(self.output_dir, f"epoch_{epoch}.pkl")
+                output_file = os.path.join(self.output_dir, f"epoch_{shard}_{epoch}.pkl")
                 accelerator.wait_for_everyone()
                 print(f"Saving epoch {epoch}")
                 model = accelerator.unwrap_model(self.model)
@@ -170,7 +171,8 @@ class AlphaQuestModel:
                        gradient_accumulation_steps,
                        log_interval,
                        accelerator,
-                       train_data=train_data)
+                       train_data=train_data,
+                       shard=i)
 
         self.train(num_epochs,
                    optimizer,
@@ -179,7 +181,8 @@ class AlphaQuestModel:
                    gradient_accumulation_steps,
                    log_interval,
                    accelerator,
-                   train_data=self.train_dataset)
+                   train_data=self.train_dataset,
+                   shard=num_shards)
 
     def eval(self, not_load=True):
         bleu_score = evaluate.load("sacrebleu")
