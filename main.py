@@ -81,7 +81,8 @@ def main():
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
     )
     model.resize_token_embeddings(len(tokenizer))
-    data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
+    data_collator = None if training_args.do_cl_train else DataCollatorForSeq2Seq(tokenizer, model=model)
+
     model = accelerator.prepare(model)
 
     if training_args.do_train or training_args.do_sweep or training_args.do_cl_train:

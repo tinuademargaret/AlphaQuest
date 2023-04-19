@@ -5,7 +5,7 @@ from tqdm.auto import tqdm
 
 import torch
 import evaluate
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, SequentialSampler
 from transformers import get_scheduler
 
 from src.utils import (
@@ -30,7 +30,7 @@ class AlphaQuestModel:
         if train_dataset:
             self.train_dataset = train_dataset
         if eval_dataset:
-            self.eval_dataloader = DataLoader(eval_dataset, batch_size=eval_batch_size, collate_fn=data_collator)
+            self.eval_dataloader = DataLoader(eval_dataset, batch_size=eval_batch_size, sampler=SequentialSampler, collate_fn=data_collator)
         self.model = model
         self.output_dir = output_dir
         self.device = device
@@ -58,7 +58,7 @@ class AlphaQuestModel:
         """
 
         train_dataloader = DataLoader(
-            train_data, batch_size=self.train_batch_size, collate_fn=self.data_collator)
+            train_data, batch_size=self.train_batch_size, sampler=SequentialSampler, collate_fn=self.data_collator)
 
         num_update_steps_per_epoch = math.ceil(len(train_dataloader) / gradient_accumulation_steps)
         max_train_steps = num_epochs * num_update_steps_per_epoch
@@ -88,8 +88,15 @@ class AlphaQuestModel:
 
             self.model.train()
             for step, batch in enumerate(train_dataloader):
-                outputs = self.model(**batch)
-                train_loss = outputs.loss
+                problem_batch = []
+                input_batch = []
+                output_batch = []
+                for i in self.train_batch_size:
+                    problem_batch.append(batch[i][])
+                problem_outputs = self.model(**problem_batch)
+                input_outputs = self.model(**input_batch)
+                output_outputs = self.model(**output_batch)
+                train_loss = problem_outputs.loss + input_outputs.loss + output_outputs.loss
                 train_loss = train_loss / gradient_accumulation_steps
 
                 accelerator.backward(train_loss)
