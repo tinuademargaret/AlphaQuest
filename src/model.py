@@ -70,6 +70,7 @@ class AlphaQuestModel:
             num_warmup_steps=num_warmup_steps,
             num_training_steps=max_train_steps,
         )
+        self.model = accelerator.prepare(self.model)
         optimizer, train_dataloader, self.eval_dataloader, lr_scheduler = accelerator.prepare(
             optimizer, train_dataloader, self.eval_dataloader, lr_scheduler
         )
@@ -162,7 +163,6 @@ class AlphaQuestModel:
                             num_shards):
         for i in range(num_shards):
             train_data = self.train_dataset.shard(num_shards=num_shards, index=i, contiguous=True)
-            train_data = IterableDataset.from_generator(self.gen, train_data)
             self.train(num_epochs,
                        optimizer,
                        run,
@@ -172,6 +172,7 @@ class AlphaQuestModel:
                        accelerator,
                        train_data=train_data,
                        shard=i)
+            accelerator.free_memory()
 
         self.train(num_epochs,
                    optimizer,
@@ -185,11 +186,6 @@ class AlphaQuestModel:
 
         accelerator.wait_for_everyone()
         self.model = accelerator.unwrap_model(self.model)
-
-    @staticmethod
-    def gen(shard):
-        for i in range(shard.num_rows):
-            yield shard[i]
 
     def eval(self, not_load=True):
         bleu_score = evaluate.load("sacrebleu")

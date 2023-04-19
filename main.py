@@ -82,7 +82,7 @@ def main():
     )
     model.resize_token_embeddings(len(tokenizer))
     data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
-    model = accelerator.prepare(model)
+    # model = accelerator.prepare(model)
 
     if training_args.do_train or training_args.do_sweep or training_args.do_cl_train:
         train_dataset = load_artifact_dataset(wandb_run=run,
