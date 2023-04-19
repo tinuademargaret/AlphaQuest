@@ -5,6 +5,7 @@ from tqdm.auto import tqdm
 
 import torch
 import evaluate
+from datasets import IterableDataset
 from torch.utils.data import DataLoader, SequentialSampler
 from transformers import get_scheduler
 
@@ -59,8 +60,7 @@ class AlphaQuestModel:
         """
 
         train_dataloader = DataLoader(
-            train_data, batch_size=self.train_batch_size, sampler=SequentialSampler,
-            collate_fn=self.data_collator)
+            train_data, batch_size=self.train_batch_size, collate_fn=self.data_collator)
 
         num_update_steps_per_epoch = math.ceil(len(train_dataloader) / gradient_accumulation_steps)
         max_train_steps = num_epochs * num_update_steps_per_epoch
@@ -150,8 +150,6 @@ class AlphaQuestModel:
                     output_file
                 )
             prev_loss = val_loss
-        accelerator.wait_for_everyone()
-        self.model = accelerator.unwrap_model(self.model)
 
     def curriculum_training(self,
                             num_epochs,
@@ -164,6 +162,7 @@ class AlphaQuestModel:
                             num_shards):
         for i in range(num_shards):
             train_data = self.train_dataset.shard(num_shards=num_shards, index=i, contiguous=True)
+            train_data = IterableDataset.from_generator(self.gen, train_data)
             self.train(num_epochs,
                        optimizer,
                        run,
@@ -183,6 +182,14 @@ class AlphaQuestModel:
                    accelerator,
                    train_data=self.train_dataset,
                    shard=num_shards)
+
+        accelerator.wait_for_everyone()
+        self.model = accelerator.unwrap_model(self.model)
+
+    @staticmethod
+    def gen(shard):
+        for i in range(shard.num_rows):
+            yield shard[i]
 
     def eval(self, not_load=True):
         bleu_score = evaluate.load("sacrebleu")
