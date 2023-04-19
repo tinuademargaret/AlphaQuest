@@ -50,7 +50,7 @@ class AlphaQuestModel:
               accelerator,
               num_warmup_steps=100,
               train_data=None,
-              shard = 0
+              shard=0
               ):
         """
 
@@ -160,10 +160,8 @@ class AlphaQuestModel:
                             log_interval,
                             accelerator,
                             num_shards):
-        sharded_data = [self.train_dataset.shard(num_shards=num_shards, index=i, contiguous=True)
-                        for i in range(num_shards)]
         for i in range(num_shards):
-            train_data = sharded_data[i]
+            train_data = self.train_dataset.shard(num_shards=num_shards, index=i, contiguous=True)
             self.train(num_epochs,
                        optimizer,
                        run,
