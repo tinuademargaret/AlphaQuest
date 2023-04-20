@@ -5,7 +5,6 @@ from tqdm.auto import tqdm
 
 import torch
 import evaluate
-from datasets import IterableDataset
 from torch.utils.data import DataLoader, SequentialSampler
 from transformers import get_scheduler
 
@@ -172,7 +171,6 @@ class AlphaQuestModel:
                        accelerator,
                        train_data=train_data,
                        shard=i)
-            accelerator.free_memory()
 
         self.train(num_epochs,
                    optimizer,
@@ -186,6 +184,12 @@ class AlphaQuestModel:
 
         accelerator.wait_for_everyone()
         self.model = accelerator.unwrap_model(self.model)
+
+    @staticmethod
+    def gen(shard):
+        for i in range(shard.num_rows):
+            yield {"input_ids": shard[i]["input_ids"], "attention_mask": shard[i]["attention_mask"],
+                   "labels": shard[i]["labels"]}
 
     def eval(self, not_load=True):
         bleu_score = evaluate.load("sacrebleu")
