@@ -31,7 +31,7 @@ class AlphaQuestModel:
         if train_dataset:
             self.train_dataset = train_dataset
         if eval_dataset:
-            self.eval_dataloader = DataLoader(eval_dataset, batch_size=eval_batch_size, sampler=SequentialSampler,
+            self.eval_dataloader = DataLoader(eval_dataset, batch_size=eval_batch_size,
                                               collate_fn=data_collator)
         self.model = model
         self.output_dir = output_dir

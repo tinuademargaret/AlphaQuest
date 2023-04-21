@@ -157,10 +157,10 @@ def collate_fn(batch):
     problem_batch = {"input_ids": [], "attention_mask": [], "labels": []}
     input_batch = {"input_ids": [], "attention_mask": [], "labels": []}
     output_batch = {"input_ids": [], "attention_mask": [], "labels": []}
-
-    for k, v in batch.items():
-        problem_batch[k].append(v[0])
-        input_batch[k].append(v[1])
-        output_batch[k].append(v[2])
+    for sample in batch:
+        for k, v in sample.items():
+            problem_batch[k].append(v[0])
+            input_batch[k].append(v[1])
+            output_batch[k].append(v[2])
 
     return problem_batch, input_batch, output_batch
