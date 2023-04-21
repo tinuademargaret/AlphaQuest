@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from datasets import load_dataset, load_from_disk
 
 
@@ -134,7 +135,7 @@ class Tokenizer:
                                                       max_length=512)
 
             task_sequence = task + task_output
-            # using one context length since the padd tokens would be ignored, so we can have batch size
+            # using one context length since the pad tokens would be ignored, so we can have batch size
             tokenized_task_sequence = self.tokenizer(task_sequence, truncation=True, padding='max_length',
                                                      max_length=512).input_ids
             # replace pad tokens for labels to -100
@@ -154,13 +155,19 @@ def collate_fn(batch):
     :return:
     """
 
-    problem_batch = {"input_ids": [], "attention_mask": [], "labels": []}
-    input_batch = {"input_ids": [], "attention_mask": [], "labels": []}
-    output_batch = {"input_ids": [], "attention_mask": [], "labels": []}
-    for sample in batch:
+    max_len = 512
+    batch_size = len(batch)
+    keyz = ("input_ids", "attention_mask", "labels")
+
+    problem_batch = {k: torch.LongTensor(batch_size, max_len).fill_(0) for k in keyz}
+    input_batch = {k: torch.LongTensor(batch_size, max_len).fill_(0) for k in keyz}
+    output_batch = {k: torch.LongTensor(batch_size, max_len).fill_(0) for k in keyz}
+
+    for i, sample in enumerate(batch):
         for k, v in sample.items():
-            problem_batch[k].append(v[0])
-            input_batch[k].append(v[1])
-            output_batch[k].append(v[2])
+            problem_batch[k][i] = torch.LongTensor(v[0])
+            input_batch[k][i] = torch.LongTensor(v[1])
+            output_batch[k][i] = torch.LongTensor(v[2])
 
     return problem_batch, input_batch, output_batch
+
