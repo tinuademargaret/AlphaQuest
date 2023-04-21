@@ -90,7 +90,7 @@ class AlphaQuestModel:
         for epoch in range(num_epochs):
 
             self.model.train()
-            for step, problem_batch, input_batch, output_batch in enumerate(train_dataloader):
+            for step, (problem_batch, input_batch, output_batch) in enumerate(train_dataloader):
                 problem_batch = batch_to_device(problem_batch, self.device)
                 input_batch = batch_to_device(input_batch, self.device)
                 output_batch = batch_to_device(output_batch, self.device)
@@ -120,7 +120,7 @@ class AlphaQuestModel:
             self.model.eval()
             bleu_score = evaluate.load("sacrebleu")
             losses = []
-            for step, problem_batch, input_batch, output_batch in enumerate(self.eval_dataloader):
+            for step, (problem_batch, input_batch, output_batch) in enumerate(self.eval_dataloader):
                 with torch.no_grad():
                     problem_batch = batch_to_device(problem_batch, self.device)
                     input_batch = batch_to_device(input_batch, self.device)
