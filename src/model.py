@@ -70,7 +70,7 @@ class AlphaQuestModel:
             num_warmup_steps=num_warmup_steps,
             num_training_steps=max_train_steps,
         )
-        self.model = accelerator.prepare(self.model)
+
         optimizer, train_dataloader, self.eval_dataloader, lr_scheduler = accelerator.prepare(
             optimizer, train_dataloader, self.eval_dataloader, lr_scheduler
         )
