@@ -9,7 +9,8 @@ from torch.utils.data import DataLoader, SequentialSampler
 from transformers import get_scheduler
 
 from src.utils import (
-    post_process
+    batch_to_device,
+    mtl_post_process
 )
 
 
@@ -30,7 +31,8 @@ class AlphaQuestModel:
         if train_dataset:
             self.train_dataset = train_dataset
         if eval_dataset:
-            self.eval_dataloader = DataLoader(eval_dataset, batch_size=eval_batch_size, sampler=SequentialSampler, collate_fn=data_collator)
+            self.eval_dataloader = DataLoader(eval_dataset, batch_size=eval_batch_size, sampler=SequentialSampler,
+                                              collate_fn=data_collator)
         self.model = model
         self.output_dir = output_dir
         self.device = device
@@ -56,9 +58,10 @@ class AlphaQuestModel:
 
         :return:
         """
-
+        if train_data is None:
+            train_data = self.train_dataset
         train_dataloader = DataLoader(
-            train_data, batch_size=self.train_batch_size, sampler=SequentialSampler, collate_fn=self.data_collator)
+            train_data, batch_size=self.train_batch_size, collate_fn=self.data_collator)
 
         num_update_steps_per_epoch = math.ceil(len(train_dataloader) / gradient_accumulation_steps)
         max_train_steps = num_epochs * num_update_steps_per_epoch
@@ -87,12 +90,10 @@ class AlphaQuestModel:
         for epoch in range(num_epochs):
 
             self.model.train()
-            for step, batch in enumerate(train_dataloader):
-                problem_batch = []
-                input_batch = []
-                output_batch = []
-                for i in self.train_batch_size:
-                    problem_batch.append(batch[i][])
+            for step, problem_batch, input_batch, output_batch in enumerate(train_dataloader):
+                problem_batch = batch_to_device(problem_batch, self.device)
+                input_batch = batch_to_device(input_batch, self.device)
+                output_batch = batch_to_device(output_batch, self.device)
                 problem_outputs = self.model(**problem_batch)
                 input_outputs = self.model(**input_batch)
                 output_outputs = self.model(**output_batch)
@@ -119,27 +120,22 @@ class AlphaQuestModel:
             self.model.eval()
             bleu_score = evaluate.load("sacrebleu")
             losses = []
-            for step, batch in enumerate(self.eval_dataloader):
+            for step, problem_batch, input_batch, output_batch in enumerate(self.eval_dataloader):
                 with torch.no_grad():
-                    val_outputs = self.model(**batch)
-                    generated_tokens = self.model.generate(batch["input_ids"],
-                                                           attention_mask=batch["attention_mask"],
-                                                           max_new_tokens=200
-                                                           )
-                labels = batch["labels"]
-                val_loss = val_outputs.loss
+                    problem_batch = batch_to_device(problem_batch, self.device)
+                    input_batch = batch_to_device(input_batch, self.device)
+                    output_batch = batch_to_device(output_batch, self.device)
+                    problem_outputs = self.model(**problem_batch)
+                    input_outputs = self.model(**input_batch)
+                    output_outputs = self.model(**output_batch)
+
+                val_loss = problem_outputs.loss + input_outputs.loss + output_outputs.loss
                 losses.append(accelerator.gather(val_loss.repeat(self.eval_batch_size)))
-                decoded_preds, decoded_labels = post_process(
-                    generated_tokens, labels, self.tokenizer)
-                bleu_score.add_batch(
-                    predictions=decoded_preds, references=decoded_labels)
 
             losses = torch.cat(losses)
             losses = losses[: len(self.eval_dataloader)]
             val_loss = torch.mean(losses)
-            bleu = bleu_score.compute()['score']
-
-            val_metrics = {"val_loss": val_loss, "bleu": bleu, "epoch": epoch}
+            val_metrics = {"val_loss": val_loss, "epoch": epoch}
             wandb_run.log({**metrics, **val_metrics})
 
             # Only save when the val_loss starts increasing
@@ -190,22 +186,42 @@ class AlphaQuestModel:
                    shard=num_shards)
 
     def eval(self, not_load=True):
+        """
+        Eval batch size is set to 1
+        :param not_load:
+        :return:
+        """
         bleu_score = evaluate.load("sacrebleu")
         rouge_score = evaluate.load("rouge")
+        generated_tokens = {}
+        labels = {}
         if not not_load:
             self.model.load_state_dict(torch.load(
                 os.path.join(self.output_dir, f"epoch_{self.eval_epoch}.pkl")))
             self.model.eval()
         with torch.no_grad():
-            for batch in tqdm(self.eval_dataloader):
-                generated_tokens = self.model.generate(
-                    batch["input_ids"].to(self.device),
-                    attention_mask=batch["attention_mask"].to(self.device),
+            for problem_batch, input_batch, output_batch in tqdm(self.eval_dataloader):
+                generated_tokens["problem"] = self.model.generate(
+                    problem_batch["input_ids"].to(self.device),
+                    attention_mask=problem_batch["attention_mask"].to(self.device),
                     max_length=200,
                 )
-                labels = batch["labels"]
+                generated_tokens["input"] = self.model.generate(
+                    input_batch["input_ids"].to(self.device),
+                    attention_mask=input_batch["attention_mask"].to(self.device),
+                    max_length=100,
+                )
+                generated_tokens["output"] = self.model.generate(
+                    output_batch["input_ids"].to(self.device),
+                    attention_mask=output_batch["attention_mask"].to(self.device),
+                    max_length=100,
+                )
 
-                decoded_preds, decoded_labels = post_process(
+                labels["problem"] = problem_batch["labels"]
+                labels["input"] = input_batch["labels"]
+                labels["output"] = output_batch["labels"]
+
+                decoded_preds, decoded_labels = mtl_post_process(
                     generated_tokens, labels, self.tokenizer)
                 bleu_score.add_batch(
                     predictions=decoded_preds, references=decoded_labels)
@@ -225,14 +241,29 @@ class AlphaQuestModel:
 
         problem_list = []
         count = 0
-        for batch in self.eval_dataloader:
+        for problem_batch, input_batch, output_batch in self.eval_dataloader:
+            batch_problem = []
             if count > 10:
                 break
-            batch_problem = self.model.generate(batch["input_ids"].to(self.device),
-                                                attention_mask=batch[
-                                                    "attention_mask"].to(self.device),
-                                                max_new_tokens=200,
-                                                )
+            problem = self.model.generate(problem_batch["input_ids"].to(self.device),
+                                          attention_mask=problem_batch[
+                                              "attention_mask"].to(self.device),
+                                          max_new_tokens=200,
+                                          )
+            batch_problem.extend(problem)
+            input = self.model.generate(input_batch["input_ids"].to(self.device),
+                                        attention_mask=input_batch[
+                                            "attention_mask"].to(self.device),
+                                        max_new_tokens=200,
+                                        )
+            batch_problem.extend(input)
+            output = self.model.generate(output_batch["input_ids"].to(self.device),
+                                         attention_mask=output_batch[
+                                             "attention_mask"].to(self.device),
+                                         max_new_tokens=200,
+                                         )
+            batch_problem.extend(output)
+
             problem_list.append(batch_problem)
             count += 1
         with open(os.path.join(

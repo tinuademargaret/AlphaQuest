@@ -18,6 +18,7 @@ from src.arguments import (
     TrainingArguments
 )
 from src.utils import (
+    collate_fn,
     load_artifact_dataset,
     Tokenizer
 )
@@ -108,18 +109,18 @@ def main():
     with accelerator.main_process_first():
         if train_dataset:
             model_inputs = train_dataset.map(
-                tokenizer_class.tokenize_data,
+                tokenizer_class.tokenize_mtl_data,
                 batched=True,
                 remove_columns=train_dataset.column_names,
             )
-            model_inputs.set_format(type="torch")
+            # model_inputs.set_format(type="torch")
         if eval_dataset:
             eval_model_inputs = eval_dataset.map(
-                tokenizer_class.tokenize_data,
+                tokenizer_class.tokenize_mtl_data,
                 batched=True,
                 remove_columns=eval_dataset.column_names,
             )
-            eval_model_inputs.set_format(type="torch")
+            # eval_model_inputs.set_format(type="torch")
 
     output_dir = os.path.join(os.getcwd(), model_args.output_dir)
 
@@ -134,7 +135,7 @@ def main():
                                         train_batch_size,
                                         eval_batch_size,
                                         training_args.eval_epoch,
-                                        data_collator
+                                        collate_fn
                                         )
     if training_args.do_train or training_args.do_sweep:
         alpha_quest_model.train(num_epochs,

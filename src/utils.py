@@ -74,6 +74,18 @@ def post_process(predictions, labels, tokenizer):
     return decoded_preds, decoded_labels
 
 
+def mtl_post_process(predictions, labels, tokenizer):
+    decoded_preds = []
+    decoded_labels = []
+
+    for k in zip(predictions.keys(), labels.keys()):
+        decoded_pred, decoded_label = post_process(predictions[k], labels[k], tokenizer)
+        decoded_preds.extend(decoded_pred)
+        decoded_labels.extend(decoded_label)
+
+    return decoded_preds, decoded_labels
+
+
 class Tokenizer:
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
@@ -134,3 +146,22 @@ class Tokenizer:
             model_inputs["labels"].append(tokenized_task_sequence)
 
         return model_inputs
+
+
+def collate_fn(batch):
+    """
+    Used by the dataloader to seperate batch into tasks
+    :param batch:
+    :return:
+    """
+
+    problem_batch = {"input_ids": [], "attention_mask": [], "labels": []}
+    input_batch = {"input_ids": [], "attention_mask": [], "labels": []}
+    output_batch = {"input_ids": [], "attention_mask": [], "labels": []}
+
+    for k, v in batch.items():
+        problem_batch[k].append(v[0])
+        input_batch[k].append(v[1])
+        output_batch[k].append(v[2])
+
+    return problem_batch, input_batch, output_batch
