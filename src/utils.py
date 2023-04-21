@@ -129,8 +129,7 @@ class Tokenizer:
         model_inputs = {"input_ids": [], "attention_mask": [], "labels": []}
 
         for task, task_output in tasks.items():
-            input_sequence = "Generate" + task + "\n" + "Language: " + self.languages[language] + "\n" + "Tag: " + str(
-                tag) + "\n" + "Solution: " + solution
+            input_sequence = "Generate" + task + "\n" + "Language: " + self.languages[language] + "\n" + "Tag: " + str(tag) + "\n" + "Solution: " + solution
             tokenized_input_sequence = self.tokenizer(input_sequence, truncation=True, padding='max_length',
                                                       max_length=512)
 
