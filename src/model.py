@@ -91,9 +91,6 @@ class AlphaQuestModel:
 
             self.model.train()
             for step, (problem_batch, input_batch, output_batch) in enumerate(train_dataloader):
-                problem_batch = batch_to_device(problem_batch, self.device)
-                input_batch = batch_to_device(input_batch, self.device)
-                output_batch = batch_to_device(output_batch, self.device)
                 problem_outputs = self.model(**problem_batch)
                 input_outputs = self.model(**input_batch)
                 output_outputs = self.model(**output_batch)
@@ -122,9 +119,6 @@ class AlphaQuestModel:
             losses = []
             for step, (problem_batch, input_batch, output_batch) in enumerate(self.eval_dataloader):
                 with torch.no_grad():
-                    problem_batch = batch_to_device(problem_batch, self.device)
-                    input_batch = batch_to_device(input_batch, self.device)
-                    output_batch = batch_to_device(output_batch, self.device)
                     problem_outputs = self.model(**problem_batch)
                     input_outputs = self.model(**input_batch)
                     output_outputs = self.model(**output_batch)
