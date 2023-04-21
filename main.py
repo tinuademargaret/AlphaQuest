@@ -110,14 +110,12 @@ def main():
         if train_dataset:
             model_inputs = train_dataset.map(
                 tokenizer_class.tokenize_mtl_data,
-                batched=True,
                 remove_columns=train_dataset.column_names,
             )
             # model_inputs.set_format(type="torch")
         if eval_dataset:
             eval_model_inputs = eval_dataset.map(
                 tokenizer_class.tokenize_mtl_data,
-                batched=True,
                 remove_columns=eval_dataset.column_names,
             )
             # eval_model_inputs.set_format(type="torch")
