@@ -5,7 +5,7 @@ from tqdm.auto import tqdm
 
 import torch
 import evaluate
-from torch.utils.data import DataLoader, SequentialSampler
+from torch.utils.data import DataLoader
 from transformers import get_scheduler
 
 from src.utils import (
@@ -25,7 +25,8 @@ class AlphaQuestModel:
                  train_batch_size,
                  eval_batch_size,
                  eval_epoch,
-                 data_collator
+                 eval_shard,
+                 data_collator,
                  ):
         if train_dataset:
             self.train_dataset = train_dataset
@@ -38,6 +39,7 @@ class AlphaQuestModel:
         self.train_batch_size = train_batch_size
         self.eval_batch_size = eval_batch_size
         self.eval_epoch = eval_epoch
+        self.eval_shard = eval_shard
         self.data_collator = data_collator
 
     def train(self,
@@ -184,18 +186,12 @@ class AlphaQuestModel:
         accelerator.wait_for_everyone()
         self.model = accelerator.unwrap_model(self.model)
 
-    @staticmethod
-    def gen(shard):
-        for i in range(shard.num_rows):
-            yield {"input_ids": shard[i]["input_ids"], "attention_mask": shard[i]["attention_mask"],
-                   "labels": shard[i]["labels"]}
-
     def eval(self, not_load=True):
         bleu_score = evaluate.load("sacrebleu")
         rouge_score = evaluate.load("rouge")
         if not not_load:
             self.model.load_state_dict(torch.load(
-                os.path.join(self.output_dir, f"epoch_{self.eval_epoch}.pkl")))
+                os.path.join(self.output_dir, f"epoch_{self.eval_shard}_{self.eval_epoch}.pkl")))
             self.model.eval()
         with torch.no_grad():
             for batch in tqdm(self.eval_dataloader):
@@ -221,7 +217,7 @@ class AlphaQuestModel:
         # only load if model is not trained
         if not not_load:
             self.model.load_state_dict(torch.load(
-                os.path.join(self.output_dir, f"epoch_{self.eval_epoch}.pkl")))
+                os.path.join(self.output_dir, f"epoch_{self.eval_shard}_{self.eval_epoch}.pkl")))
             self.model.eval()
 
         problem_list = []
