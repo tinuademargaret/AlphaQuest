@@ -22,8 +22,9 @@ class ModelArguments:
         default="output", metadata={"help": "Where to store model outputs"}
     )
     do_upload: bool = field(
-        default=True, metadata={"help": "Whether model should be uploaded to wandb"}
+        default=False, metadata={"help": "Whether model should be uploaded to wandb"}
     )
+
 
 @dataclass
 class TrainingArguments:
@@ -95,7 +96,8 @@ class TrainingArguments:
         }
     )
     epochs: Optional[int] = field(default=10, metadata={"help": "Total number of training epochs to perform."})
-    eval_epoch: Optional[int] = field(default=10, metadata={"help": "Shard model to use for evaluation."})
+    eval_epoch: Optional[int] = field(default=10, metadata={"help": "Epoch model to use for evaluation."})
+    eval_shard: Optional[int] = field(default=0, metadata={"help": "Shard model to use for evaluation."})
     per_device_train_batch_size: Optional[int] = field(
         default=2,
         metadata={"help": "Batch size (per device) for the training dataloader."}
@@ -109,10 +111,3 @@ class TrainingArguments:
     log_interval: Optional[int] = field(default=100, metadata={"help": "wandb logging interval."})
     num_shards: Optional[int] = field(default=4, metadata={"help": "no of splits for training data during"
                                                                    "curriculum training"})
-
-
-
-
-
-
-
