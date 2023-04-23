@@ -161,15 +161,17 @@ def collate_fn(batch):
     :return:
     """
 
-    prob_max_len = 512
-    input_max_len = 200
-    output_max_len = 100
-    batch_size = len(batch)
-    keyz = ("input_ids", "attention_mask", "labels")
+    max_len = 512
 
-    problem_batch = {k: torch.LongTensor(batch_size, prob_max_len).fill_(0) for k in keyz}
-    input_batch = {k: torch.LongTensor(batch_size, input_max_len).fill_(0) for k in keyz}
-    output_batch = {k: torch.LongTensor(batch_size, output_max_len).fill_(0) for k in keyz}
+    batch_size = len(batch)
+    keyz = ("input_ids", "attention_mask")
+
+    problem_batch = {k: torch.LongTensor(batch_size, max_len).fill_(0) for k in keyz}
+    input_batch = {k: torch.LongTensor(batch_size, max_len).fill_(0) for k in keyz}
+    output_batch = {k: torch.LongTensor(batch_size, max_len).fill_(0) for k in keyz}
+    problem_batch["labels"] = torch.LongTensor(batch_size, 512).fill_(0)
+    input_batch["labels"] = torch.LongTensor(batch_size, 200).fill_(0)
+    output_batch["labels"] = torch.LongTensor(batch_size, 100).fill_(0)
 
     for i, sample in enumerate(batch):
         for k, v in sample.items():
