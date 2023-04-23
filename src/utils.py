@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import numpy as np
 import torch
 from datasets import load_dataset, load_from_disk
@@ -125,7 +126,10 @@ class Tokenizer:
         solution = example['solutions.solution']
         tag = example['cf_tags']
         language = example['solutions.language']
-        tasks = {"Problem": example['problem'], "Input": example['input'], "Output": example["output"]}
+        tasks = OrderedDict([("Problem", example['problem']),
+                             ("Input", example['input']),
+                             ("Output", example['output']),
+                             ])
         max_len = {"Problem": 512, "Input": 200, "Output": 100}
 
         model_inputs = {"input_ids": [], "attention_mask": [], "labels": []}
