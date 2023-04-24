@@ -137,13 +137,13 @@ class Tokenizer:
             input_sequence = "Generate" + task + "\n" + "Language: " + self.languages[language] + "\n" + "Tag: " + str(
                 tag) + "\n" + "Solution: " + solution
             tokenized_input_sequence = self.tokenizer(input_sequence, truncation=True, padding='max_length',
-                                                      max_length=512)
+                                                      max_length=300)
 
             task_sequence = task + task_output
 
             # using one context length since the padd tokens would be ignored, so we can have batch size
             tokenized_task_sequence = self.tokenizer(task_sequence, truncation=True, padding='max_length',
-                                                     max_length=512).input_ids
+                                                     max_length=300).input_ids
             # replace pad tokens for labels to -100
             tokenized_task_sequence = [label if label != 0 else -100 for label in tokenized_task_sequence]
 
