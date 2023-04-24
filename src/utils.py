@@ -130,7 +130,6 @@ class Tokenizer:
                              ("Input", example['input']),
                              ("Output", example['output']),
                              ])
-        max_len = {"Problem": 512, "Input": 200, "Output": 100}
 
         model_inputs = {"input_ids": [], "attention_mask": [], "labels": []}
 
@@ -142,8 +141,15 @@ class Tokenizer:
 
             task_sequence = task + task_output
             # using one context length since the pad tokens would be ignored, so we can have batch size
-            tokenized_task_sequence = self.tokenizer(task_sequence, truncation=True, padding='max_length',
-                                                     max_length=max_len[task]).input_ids
+            if task == "Problem":
+                tokenized_task_sequence = self.tokenizer(task_sequence, truncation=True, padding='max_length',
+                                                         max_length=512).input_ids
+            elif task == "Input":
+                tokenized_task_sequence = self.tokenizer(task_sequence, truncation=True, padding='max_length',
+                                                         max_length=200).input_ids
+            else:
+                tokenized_task_sequence = self.tokenizer(task_sequence, truncation=True, padding='max_length',
+                                                         max_length=100).input_ids
             # replace pad tokens for labels to -100
             tokenized_task_sequence = [label if label != 0 else -100 for label in tokenized_task_sequence]
 
