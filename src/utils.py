@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import numpy as np
-import torch
 from datasets import load_dataset, load_from_disk
+import torch
 
 
 def batch_to_device(batch, device):
@@ -140,16 +140,10 @@ class Tokenizer:
                                                       max_length=512)
 
             task_sequence = task + task_output
-            # using one context length since the pad tokens would be ignored, so we can have batch size
-            if task == "Problem":
-                tokenized_task_sequence = self.tokenizer(task_sequence, truncation=True, padding='max_length',
-                                                         max_length=512).input_ids
-            elif task == "Input":
-                tokenized_task_sequence = self.tokenizer(task_sequence, truncation=True, padding='max_length',
-                                                         max_length=200).input_ids
-            else:
-                tokenized_task_sequence = self.tokenizer(task_sequence, truncation=True, padding='max_length',
-                                                         max_length=100).input_ids
+
+            # using one context length since the padd tokens would be ignored, so we can have batch size
+            tokenized_task_sequence = self.tokenizer(task_sequence, truncation=True, padding='max_length',
+                                                     max_length=512).input_ids
             # replace pad tokens for labels to -100
             tokenized_task_sequence = [label if label != 0 else -100 for label in tokenized_task_sequence]
 
@@ -167,22 +161,19 @@ def collate_fn(batch):
     :return:
     """
 
-    max_len = 512
+    max_len = 300
 
     batch_size = len(batch)
-    keyz = ("input_ids", "attention_mask")
+    keyz = ("input_ids", "attention_mask", "labels")
 
     problem_batch = {k: torch.LongTensor(batch_size, max_len).fill_(0) for k in keyz}
     input_batch = {k: torch.LongTensor(batch_size, max_len).fill_(0) for k in keyz}
     output_batch = {k: torch.LongTensor(batch_size, max_len).fill_(0) for k in keyz}
-    problem_batch["labels"] = torch.LongTensor(batch_size, 512).fill_(0)
-    input_batch["labels"] = torch.LongTensor(batch_size, 200).fill_(0)
-    output_batch["labels"] = torch.LongTensor(batch_size, 100).fill_(0)
 
     for i, sample in enumerate(batch):
         for k, v in sample.items():
-            problem_batch[k][i] = torch.LongTensor(v[0])
-            input_batch[k][i] = torch.LongTensor(v[1])
-            output_batch[k][i] = torch.LongTensor(v[2])
+            problem_batch[k][i] = v[0]
+            input_batch[k][i] = v[1]
+            output_batch[k][i] = v[2]
 
     return problem_batch, input_batch, output_batch
