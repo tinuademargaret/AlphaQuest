@@ -245,18 +245,18 @@ class AlphaQuestModel:
                                           max_new_tokens=200,
                                           )
             batch_problem.extend(problem)
-            input = self.model.generate(input_batch["input_ids"].to(self.device),
+            problem_input = self.model.generate(input_batch["input_ids"].to(self.device),
                                         attention_mask=input_batch[
                                             "attention_mask"].to(self.device),
                                         max_new_tokens=200,
                                         )
-            batch_problem.extend(input)
-            output = self.model.generate(output_batch["input_ids"].to(self.device),
+            batch_problem.extend(problem_input)
+            problem_output = self.model.generate(output_batch["input_ids"].to(self.device),
                                          attention_mask=output_batch[
                                              "attention_mask"].to(self.device),
                                          max_new_tokens=200,
                                          )
-            batch_problem.extend(output)
+            batch_problem.extend(problem_output)
 
             problem_list.append(batch_problem)
             count += 1

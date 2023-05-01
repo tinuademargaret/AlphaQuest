@@ -80,8 +80,8 @@ def mtl_post_process(predictions, labels, tokenizer):
     decoded_preds = []
     decoded_labels = []
 
-    for k in zip(predictions.keys(), labels.keys()):
-        decoded_pred, decoded_label = post_process(predictions[k], labels[k], tokenizer)
+    for k1, k2 in zip(predictions.keys(), labels.keys()):
+        decoded_pred, decoded_label = post_process(predictions[k1], labels[k2], tokenizer)
         decoded_preds.extend(decoded_pred)
         decoded_labels.extend(decoded_label)
 
@@ -141,7 +141,7 @@ class Tokenizer:
 
             task_sequence = task + task_output
 
-            # using one context length since the padd tokens would be ignored, so we can have batch size
+            # using one context length since the pad tokens would be ignored, so we can have batch size
             tokenized_task_sequence = self.tokenizer(task_sequence, truncation=True, padding='max_length',
                                                      max_length=300).input_ids
             # replace pad tokens for labels to -100
