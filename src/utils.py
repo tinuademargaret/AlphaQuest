@@ -83,14 +83,18 @@ class Tokenizer:
         self.tokenizer = tokenizer
 
     def tokenize_train_data(self, example):
+        input_text = "Solution: " + example["solutions.solution"] + "\n" + "Problem: " + example["problem"] + example[
+            "input"] + example["output"]
         return self.tokenizer(
-            example["input_text"],
+            input_text,
             truncation=True
         )
 
     def tokenize_test_data(self, example):
+        input_text = "Solution: " + example["solutions.solution"] + "\n" + "Problem: "
+        target = example["problem"] + example["input"] + example["output"]
         return self.tokenizer(
-            example["input_text"],
-            text_target=example['target'],
+            input_text,
+            text_target=target,
             truncation=True
         )
