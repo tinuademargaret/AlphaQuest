@@ -133,6 +133,7 @@ def main():
                                         train_batch_size,
                                         eval_batch_size,
                                         training_args.eval_epoch,
+                                        training_args.eval_shard,
                                         collate_fn
                                         )
     if training_args.do_train or training_args.do_sweep:

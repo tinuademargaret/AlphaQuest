@@ -26,6 +26,7 @@ class AlphaQuestModel:
                  train_batch_size,
                  eval_batch_size,
                  eval_epoch,
+                 eval_shard,
                  data_collator
                  ):
         if train_dataset:
@@ -40,6 +41,7 @@ class AlphaQuestModel:
         self.train_batch_size = train_batch_size
         self.eval_batch_size = eval_batch_size
         self.eval_epoch = eval_epoch
+        self.eval_shard = eval_shard
         self.data_collator = data_collator
 
     def train(self,
@@ -191,7 +193,7 @@ class AlphaQuestModel:
         labels = {}
         if not not_load:
             self.model.load_state_dict(torch.load(
-                os.path.join(self.output_dir, f"epoch_{self.eval_epoch}.pkl")))
+                os.path.join(self.output_dir, f"epoch_{self.eval_shard}_{self.eval_epoch}.pkl")))
             self.model.eval()
         with torch.no_grad():
             for problem_batch, input_batch, output_batch in tqdm(self.eval_dataloader):
@@ -230,7 +232,7 @@ class AlphaQuestModel:
         # only load if model is not trained
         if not not_load:
             self.model.load_state_dict(torch.load(
-                os.path.join(self.output_dir, f"epoch_{self.eval_epoch}.pkl")))
+                os.path.join(self.output_dir, f"epoch_{self.eval_shard}_{self.eval_epoch}.pkl")))
             self.model.eval()
 
         problem_list = []
